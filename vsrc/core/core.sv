@@ -1,0 +1,5 @@
+module Core(
+
+);
+
+endmodule:core
