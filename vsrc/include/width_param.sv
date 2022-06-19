@@ -4,12 +4,15 @@
 `define INST_WITDH 32
 `define REG_WIDTH 5
 `define REG_NUM 32
+
 `define NUM_OF_BYTES 4
+
 
 //implentation specific width
 
-`EXU_OP_WIDTH 4
-`EXU_OP_NUM 16
+`define EXU_OP_WIDTH 6
+`define EXU_OP_NUM 16
 
 
-`LSU
+`define LSU_OP_WIDTH 4
+`define LSU_OP_NUM 16

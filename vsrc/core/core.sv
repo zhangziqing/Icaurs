@@ -1,5 +1,6 @@
 module Core(
-
+    input clk,
+    input reset
 );
 
-endmodule:core
+endmodule:Core

@@ -4,7 +4,7 @@ module RegFile(
     input                       rs_en,
     input [`REG_WIDTH-1:0]      rs_addr,
     output [`DATA_WIDTH-1:0]    rs_data,
-    input rt_en,
+    input                       rt_en,
     input [`REG_WIDTH-1:0]      rt_addr,
     output [`DATA_WIDTH-1:0]    rt_data,
 
