@@ -1,0 +1,6 @@
+[submodule "chiplab"]
+	path = chiplab
+	url = https://gitee.com/loongson-edu/chiplab.git
+[submodule "lac_tracer"]
+	path = lac_tracer
+	url = git@github.com:zhangziqing/Lac_tracer.git

@@ -1,16 +1,17 @@
+`include "vsrc/include/width_param.sv"
 module RegFile(
     input clk,
     input reset,
-    input                       rs_en,
-    input [`REG_WIDTH-1:0]      rs_addr,
-    output [`DATA_WIDTH-1:0]    rs_data,
-    input                       rt_en,
-    input [`REG_WIDTH-1:0]      rt_addr,
-    output [`DATA_WIDTH-1:0]    rt_data,
+    input                           r1_en,
+    input   [`REG_WIDTH-1:0]        r1_addr,
+    output  [`DATA_WIDTH-1:0]       r1_data,
+    input                           r2_en,
+    input   [`REG_WIDTH-1:0]        r2_addr,
+    output  [`DATA_WIDTH-1:0]       r2_data,
 
-    input                       rd_en
-    input [`REG_WIDTH-1:0]      rd_addr,
-    input [`DATA_WIDTH-1:0]     rd_data
+    input                           rw_en
+    input   [`REG_WIDTH-1:0]        rw_addr,
+    input   [`DATA_WIDTH-1:0]       rw_data
 );
 
     reg [`REG_WIDTH-1:0] reg_file [`REG_NUM-1:0];
@@ -21,13 +22,13 @@ module RegFile(
                 reg_file[i] <= 0;
             end
         end else begin
-            if ( rd_en && rd_addr != 0) begin
-                reg_file[rd_addr] <= rd_data;
+            if ( rd_en && rw_addr != 0) begin
+                reg_file[rw_addr] <= rw_data;
             end
         end
     end
 
-    assgin rs_data = rs_en ? reg_file[rs_addr] : 0;
-    assgin rt_data = rt_en ? reg_file[rt_addr] : 0;
+    assgin r1_data = r1_en ? reg_file[r1_addr] : 0;
+    assgin r2_data = r2_en ? reg_file[r2_addr] : 0;
 
 endmodule

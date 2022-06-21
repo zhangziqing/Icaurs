@@ -1,5 +1,0 @@
-module MemoryAccess(
-
-);
-
-endmodule:MemoryAccess
