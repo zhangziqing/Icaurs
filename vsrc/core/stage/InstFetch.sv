@@ -1,4 +1,5 @@
 `include "vsrc/include/width_param.sv"
+`include "vsrc/include/isa_spec.sv"
 module InstFetch(
     input clk,
     input rst,
@@ -8,7 +9,7 @@ module InstFetch(
     reg [`ADDR_WIDTH - 1 : 0] r_pc;
     always_ff @(posedge clk)begin
         if(rst)
-            r_pc <= 0;
+            r_pc <= `RESET_VECTOR;
         else
             r_pc <= r_pc + 4;
     end

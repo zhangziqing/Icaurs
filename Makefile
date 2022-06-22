@@ -5,9 +5,12 @@ CSRC := $(shell find csrc/src -name "*.c")
 CCSRC := $(shell find csrc/ -name "*.cpp" -or -name "*.cc")
 OBJS=$(CSRC:%.c=$(OBJ_DIR)/%.o)
 INC_PATH := $(abspath ./csrc/include/)
-CFLAGS += $(addprefix -I, $(INC_PATH))  -MMD -Wall -Werror
-CXXFLAGS += $(shell llvm-config --cxxflags)
-LIBS += $(shell llvm-config --libs) -lreadline -ldl
+CFLAGS += $(addprefix -I, $(INC_PATH))  -MMD -Wall -Werror -g
+CXXFLAGS +=
+LIBS += -lreadline -ldl
+
+ARGS = 
+IMG = 
 
 VER_INCLUE = vsrc \
 			vsrc/IO/ \
@@ -19,14 +22,19 @@ VER_FLAGS = $(addprefix -I,$(VER_INCLUE)) --cc --exe --build --trace \
 $(OBJ_DIR)/%.o:%.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 
-.PHONY: sim clean all
+.PHONY:  clean all run
 
-all : sim
-	$(BUILD_DIR)/Vtop
-sim:$(OBJS)
+all:run
+
+run:build
+	$(BUILD_DIR)/Vtop $(ARGS) $(IMG)
+
+gdb:build
+	gdb $(BUILD_DIR)/Vtop
+build:$(OBJS)
 	@mkdir -p $(BUILD_DIR)
 	verilator vsrc/core/Core.sv $(VER_FLAGS) $(CCSRC) $(abspath $(OBJS)) \
 	-CFLAGS "-I$(INC_PATH)" $(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -LDFLAGS , $(LIBS))

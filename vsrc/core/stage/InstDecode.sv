@@ -16,15 +16,15 @@ module InstDecode(
 
     /*
         r1 : regRead1;
-        rs : regRead2;
+        r2 : regRead2;
         rw : regWrite
     */
     output                          r1_en,
     output  [`REG_WIDTH - 1 : 0]    r1_addr,
     input   [`DATA_WIDTH - 1: 0]    r1_data,
-    output                          rs_en,
-    output  [`REG_WIDTH - 1 : 0]    rs_addr,
-    input   [`DATA_WIDTH - 1: 0]    rs_data,
+    output                          r2_en,
+    output  [`REG_WIDTH - 1 : 0]    r2_addr,
+    input   [`DATA_WIDTH - 1: 0]    r2_data,
     output                          rw_en,
     output  [`REG_WIDTH - 1 : 0]    rw_addr,
     output  [`DATA_WIDTH - 1: 0]    rw_data,
@@ -34,7 +34,7 @@ module InstDecode(
     id_stage_if.o                 id_info,
 
     //branch info
-    branch_info.o               branch_info
+    branch_info_if.o               branch_info
 );
 
     //generate the oprands
@@ -65,7 +65,7 @@ module InstDecode(
     */
     wire op_rand_type ;
 
-    wire [`DATA_WIDTH - 1 : 0] branch_oprand1 = reg1_data;    
+    wire [`DATA_WIDTH - 1 : 0] branch_oprand1 = r1_data;    
 endmodule
 
 

@@ -11,7 +11,7 @@ interface id_stage_if;
 
     logic  [`DATA_WIDTH - 1     : 0 ]   oprand1;
     logic  [`DATA_WIDTH - 1     : 0 ]   oprand2;
-    logic  [`EXU_OP_WIDTH - 1    : 0 ]   ex_op;
+    logic  [`EXU_OP_WIDTH - 1    : 0]   ex_op;
     logic  [`CSR_OP_WIDTH - 1   : 0 ]   csr_op;   
     logic  [`REG_WIDTH - 1      : 0 ]   rd_wr_addr;
     logic                               rd_wr_en;
