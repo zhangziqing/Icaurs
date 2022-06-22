@@ -10,6 +10,11 @@ module InstFetch(
     always_ff @(posedge clk)begin
         if(rst)
             r_pc <= `RESET_VECTOR;
+        //ADD BRANCH INFO TEST
+        else if (branch_info.branch_en)
+            r_pc <= branch_info.branch_addr;
+        else if (branch_info.jump_en)
+            r_pc <= branch_info.jump_addr;
         else
             r_pc <= r_pc + 4;
     end

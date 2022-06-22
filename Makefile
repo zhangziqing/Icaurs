@@ -37,7 +37,7 @@ gdb:build
 build:$(OBJS)
 	@mkdir -p $(BUILD_DIR)
 	verilator vsrc/core/Core.sv $(VER_FLAGS) $(CCSRC) $(abspath $(OBJS)) \
-	-CFLAGS "-I$(INC_PATH)" $(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -LDFLAGS , $(LIBS))
+	-CFLAGS "-I$(INC_PATH)" $(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -CFLAGS ,$(CFLAGS)) $(addprefix -LDFLAGS , $(LIBS))
 
 
 

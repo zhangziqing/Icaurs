@@ -25,9 +25,6 @@ module InstDecode(
     output                          r2_en,
     output  [`REG_WIDTH - 1 : 0]    r2_addr,
     input   [`DATA_WIDTH - 1: 0]    r2_data,
-    output                          rw_en,
-    output  [`REG_WIDTH - 1 : 0]    rw_addr,
-    output  [`DATA_WIDTH - 1: 0]    rw_data,
 
 
     //stage interface
@@ -52,11 +49,13 @@ module InstDecode(
     
     assign id_info.oprand1 = 0;
 
+
+    //oprand type
     wire [13:0] csr_code = inst[23:10];
 
-    wire is_branch = inst[31:30] == 2'b01;
-    wire is_load_store = inst[31:29] == 3'b001;
-    wire is_store = is_load_store && inst[28:24] == 5'b01001;
+    wire is_branch = ~|(inst[31:30] ^ 2'b01);
+    wire is_load_store = ~|(inst[31:29] ^ 3'b001);
+    wire is_store = is_load_store && ~|(inst[28:24] == 5'b01001);
 
     /**
     *   register:0
@@ -65,7 +64,15 @@ module InstDecode(
     */
     wire op_rand_type ;
 
-    wire [`DATA_WIDTH - 1 : 0] branch_oprand1 = r1_data;    
+    wire [`DATA_WIDTH - 1 : 0] branch_oprand1 = r1_data;
+    wire [`DATA_WIDTH - 1 : 0] branch_oprand2 = r2_data;
+
+    wire branch_en;//TODO
+    wire branch_addr = 0; //TODO
+
+    wire jump_en;//TODO
+    wire jump_addr = 0;//TODO
+
 endmodule
 
 
