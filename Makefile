@@ -5,12 +5,12 @@ CSRC := $(shell find csrc/src -name "*.c")
 CCSRC := $(shell find csrc/ -name "*.cpp" -or -name "*.cc")
 OBJS=$(CSRC:%.c=$(OBJ_DIR)/%.o)
 INC_PATH := $(abspath ./csrc/include/)
-CFLAGS += $(addprefix -I, $(INC_PATH))  -MMD -Wall -Werror -g
+CFLAGS += $(addprefix -I, $(INC_PATH))  -MMD -Wall -Werror -g -O2
 CXXFLAGS +=
 LIBS += -lreadline -ldl
 
-ARGS = 
-IMG = 
+ARGS += 
+IMG += 
 
 VER_INCLUE = vsrc \
 			vsrc/IO/ \
@@ -25,7 +25,7 @@ $(OBJ_DIR)/%.o:%.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 
-.PHONY:  clean all run
+.PHONY:  clean all run build
 
 all:run
 

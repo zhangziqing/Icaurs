@@ -2,6 +2,7 @@
 import "DPI-C" function void dpi_pmem_read(output int data, input int addr, input bit en);
 import "DPI-C" function void dpi_pmem_write(input int data, input int addr, input bit en, input bit[3:0] wr_mask);
 import "DPI-C" function void trap(input int inst,input int res);
+import "DPI-C" function void npc_update(input int inst,input int pc);
 
 module Core(
     input clock,
@@ -81,4 +82,6 @@ module Core(
 
     always_ff@(clock)
         trap(inst,reg_0.reg_file[4]);
+    always_ff@(clock)
+        npc_update(inst,pc);
 endmodule:Core

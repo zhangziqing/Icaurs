@@ -1,2 +1,4 @@
 obj_dir/*
 build/
+.vscode/
+.svlint.toml
