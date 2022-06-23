@@ -4,3 +4,6 @@
 [submodule "lac_tracer"]
 	path = lac_tracer
 	url = git@github.com:zhangziqing/Lac_tracer.git
+[submodule "TCMAL"]
+	path = TCMAL
+	url = https://github.com/zhangziqing/TCMAL.git
