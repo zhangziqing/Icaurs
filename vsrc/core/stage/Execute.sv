@@ -9,7 +9,6 @@ module Execute(
 
     wire [`ALU_OP_WIDTH - 1 : 0] alu_op;//TODO
     wire [`DATA_WIDTH - 1 : 0 ]alu_res;
-    wire cout;
     ALU alu_0 (
     .op(alu_op),
     .oprand1(id_info.oprand1),
@@ -31,6 +30,7 @@ module ALU(
     input [`DATA_WIDTH - 1 : 0] oprand2,
     output logic [`DATA_WIDTH - 1 : 0] result
 );
+    wire cout;
     wire signed [31:0] temp_oper;   //带符号数的临时变量
     assign temp_oper = operand1;    //方便后面对alu_src1进行算数右移
     always_comb begin:ALU
