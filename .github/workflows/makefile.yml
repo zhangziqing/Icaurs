@@ -3,14 +3,13 @@ name: Makefile CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
 
-    runs-on: verilator/verilator
-
+    runs-on: ubuntu-latest
+    container:
+      image: verilator/verilator
     steps:
     - uses: actions/checkout@v3
       
