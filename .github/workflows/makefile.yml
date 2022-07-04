@@ -16,6 +16,6 @@ jobs:
       with:
         submodules: recursive
     - name: Dependency
-      run: sudo apt-get update && sudo apt-get install libreadline-dev
+      run: apt-get update && apt-get install libreadline-dev
     - name: Run
       run: make run
