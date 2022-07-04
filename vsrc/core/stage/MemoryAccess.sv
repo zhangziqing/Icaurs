@@ -28,7 +28,6 @@ module MemoryAccess(
                     2'b11:dpi_pmem_write(ex_info.lsu_data<<24,ex_info.ex_result,1,4'b1000);
                 endcase
             end
-            default: 
             4'b0101:begin  //ST.H
                 case(ex_info.ex_result[1:0])
                     2'b00:dpi_pmem_write(ex_info.lsu_data,ex_info.ex_result,1,4'b0011);
