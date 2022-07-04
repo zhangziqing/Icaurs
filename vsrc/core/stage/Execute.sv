@@ -31,6 +31,7 @@ module ALU(
     output logic [`DATA_WIDTH - 1 : 0] result
 );
     wire cout;
+    wire subres;
     wire [63:0] mulres;
     wire signed [31:0] temp_oper;   //带符号数的临时变量
     assign temp_oper = operand1;    //方便后面对oprand1进行算数右移
@@ -47,8 +48,8 @@ module ALU(
             `ALU_SRA  : result = temp_oper >>> oprand2[4:0];//sra.w
             `ALU_SLT  : 
                 begin
-                    {cout,result} = oprand1 + ~oprand2 + 1;
-                    result = result[31] ? 1'b1 : 1'b0;//slt
+                    {cout,subres} = oprand1 + ~oprand2 + 1;
+                    result = subres[31] && !cout ? 1'b1 : 1'b0;//slt
                 end
             `ALU_SLTU : 
                 begin
