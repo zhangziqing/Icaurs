@@ -7,8 +7,8 @@ module Execute(
     ex_stage_if.o ex_info
 );
 
-    wire [`ALU_OP_WIDTH - 1 : 0] alu_op=id_info.ex_op;//TODO
-    wire [`DATA_WIDTH - 1 : 0 ]alu_res;
+    logic [`ALU_OP_WIDTH - 1 : 0] alu_op=id_info.ex_op;//TODO
+    logic [`DATA_WIDTH - 1 : 0 ]alu_res;
     ALU alu_0 (
     .op(alu_op),
     .oprand1(id_info.oprand1),
@@ -30,15 +30,15 @@ module ALU(
     input [`DATA_WIDTH - 1 : 0] oprand2,
     output logic [`DATA_WIDTH - 1 : 0] result
 );
-    wire cout;
-    wire subres;
-    wire [63:0] mulres;
-    wire signed [31:0] temp_oper;   //带符号数的临时变量
-    assign temp_oper = operand1;    //方便后面对oprand1进行算数右移
+    logic cout;
+    logic [31:0]subres;
+    logic [63:0] mulres;
+    logic signed [31:0] temp_oper;   //带符号数的临时变量
+    assign temp_oper = oprand1;    //方便后面对oprand1进行算数右移
     always_comb begin:ALU
         case (op)
             `ALU_ADD  : {cout,result} = oprand1 + oprand2;
-            `ALU_SUB  : {cout,result} = oprand1 + ~oprand2 + 1;
+            `ALU_SUB  : {cout,result} = oprand1 - oprand2;
             `ALU_AND  : result = oprand1 & oprand2;//and
             `ALU_OR   : result = oprand1 | oprand2;//or
             `ALU_XOR  : result = oprand1 ^ oprand2;//xor
@@ -48,13 +48,13 @@ module ALU(
             `ALU_SRA  : result = temp_oper >>> oprand2[4:0];//sra.w
             `ALU_SLT  : 
                 begin
-                    {cout,subres} = oprand1 + ~oprand2 + 1;
-                    result = subres[31] && !cout ? 1'b1 : 1'b0;//slt
+                    {cout,subres} = oprand1 - oprand2 ;
+                    result = (subres[31] && !cout) ? 1 : 0;//slt
                 end
             `ALU_SLTU : 
                 begin
-                    {cout,result} = oprand1 + ~oprand2 + 1;
-                    result = cout ? 1'b0 : 1'b1;//sltu
+                    {cout,result} = oprand1 - oprand2 + 1;
+                    result = cout ? 0 : 1;//sltu
                 end
             `ALU_MUL  : 
                 begin
