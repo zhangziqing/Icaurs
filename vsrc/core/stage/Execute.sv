@@ -53,7 +53,7 @@ module ALU(
                 end
             `ALU_SLTU : 
                 begin
-                    {cout,result} = oprand1 - oprand2 + 1;
+                    {cout,result} = oprand1 - oprand2 ;
                     result = cout ? 0 : 1;//sltu
                 end
             `ALU_MUL  : 
