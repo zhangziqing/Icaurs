@@ -3,6 +3,7 @@ import "DPI-C" function void dpi_pmem_read(output int data, input int addr, inpu
 import "DPI-C" function void dpi_pmem_write(input int data, input int addr, input bit en, input bit[3:0] wr_mask);
 import "DPI-C" function void trap(input int inst,input int res);
 import "DPI-C" function void npc_update(input int inst,input int pc);
+import "DPI-C" function void reg_connect(input int a[]);
 
 module Core(
     input clock,
@@ -84,4 +85,7 @@ module Core(
         trap(inst,reg_0.reg_file[4]);
     always_ff@(clock)
         npc_update(inst,pc);
+    initial begin
+      reg_connect(reg_0.reg_file);
+    end
 endmodule:Core

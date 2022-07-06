@@ -15,13 +15,16 @@ module Execute(
     .oprand2(id_info.oprand2),
     .result(alu_res)
     );
+    always_comb $display("alu_res %x",alu_res);
     assign ex_info.inst = id_info.inst;
     assign ex_info.inst = id_info.pc;
     assign ex_info.lsu_data = id_info.lsu_data;
     assign ex_info.lsu_op = id_info.lsu_op;
     assign ex_info.rw_en = id_info.rw_en;
     assign ex_info.rw_addr = id_info.rw_addr;
-    assign ex_info.ex_result = alu_res;//TODO
+    assign ex_info.ex_result = alu_res;
+    assign ex_info.pc = id_info.pc;
+    assign ex_info.inst = id_info.pc;
 endmodule
 
 module ALU(
@@ -68,8 +71,9 @@ module ALU(
                 end
             `ALU_DIV  : result = oprand1 / oprand2;
             `ALU_MOD  : result = oprand1 % oprand2;
-        default:
+            default:begin
                 result = 0;
+            end
         endcase
     end
 endmodule

@@ -12,11 +12,12 @@ LIBS += -lreadline -ldl
 ARGS += 
 IMG += 
 
+VERILATOR = verilator
 VER_INCLUE = vsrc \
 			vsrc/IO/ \
 			vsrc/core/ \
 			vsrc/core/stage/ 
-VER_FLAGS = $(addprefix -I,$(VER_INCLUE)) --cc --exe --build --trace \
+VER_FLAGS = $(addprefix -I,$(VER_INCLUE)) --cc --exe --build --trace -Wno-fatal \
 			--top Core --prefix Vtop -Mdir $(BUILD_DIR)
 
 $(OBJ_DIR)/%.o:%.c
@@ -36,7 +37,7 @@ gdb:build
 	gdb $(BUILD_DIR)/Vtop
 build:$(OBJS)
 	@mkdir -p $(BUILD_DIR)
-	verilator vsrc/core/Core.sv $(VER_FLAGS) $(CCSRC) $(abspath $(OBJS)) \
+	$(VERILATOR) vsrc/core/Core.sv $(VER_FLAGS) $(CCSRC) $(abspath $(OBJS)) \
 	-CFLAGS "-I$(INC_PATH)" $(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -CFLAGS ,$(CFLAGS)) $(addprefix -LDFLAGS , $(LIBS))
 
 

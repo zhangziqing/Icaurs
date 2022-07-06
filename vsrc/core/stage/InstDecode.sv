@@ -73,8 +73,8 @@ module InstDecode(
 
     wire is_si20,is_lu12i,is_pcaddu12i;
     assign is_si20=~|(inst[31:28]^4'b0001);
-    assign is_lu12i=is_si20&&(inst[27:25]^`LU12I);
-    assign is_pcaddu12i=is_si20&&(inst[27:25]^`PCADDU12I);
+    assign is_lu12i=is_si20&&~|(inst[27:25]^`LU12I);
+    assign is_pcaddu12i=is_si20&&~|(inst[27:25]^`PCADDU12I);
 
     wire is_branch_jump;
     assign is_branch_jump = ~|(inst[31:30] ^ 2'b01);
@@ -142,7 +142,7 @@ module InstDecode(
     assign branch_oprand2=r2_data;
 
     wire is_branch;
-    wire branch_en;
+    logic branch_en;
     wire [`ADDR_WIDTH - 1 : 0 ] branch_addr;
     wire is_jump; 
     wire jump_en;
@@ -193,10 +193,10 @@ module InstDecode(
     assign id_info.inst=inst;
     assign id_info.pc=pc;
     assign id_info.lsu_op=is_load_store?inst[25:22]:4'b1111;
-    assign id_info.lsu_data=is_store?r2_data:32'b0;
+    assign id_info.lsu_data=r2_data;
 
-    wire [`DATA_WIDTH - 1 : 0 ] oprand1;
-    wire [`DATA_WIDTH - 1 : 0 ] oprand2;
+    logic [`DATA_WIDTH - 1 : 0 ] oprand1;
+    logic [`DATA_WIDTH - 1 : 0 ] oprand2;
     assign id_info.oprand1=oprand_unsigned?$unsigned(oprand1):oprand1;
     assign id_info.oprand2=oprand_unsigned?$unsigned(oprand2):oprand2;
 
@@ -207,12 +207,7 @@ module InstDecode(
             r1_en=1;
             r1_addr=rj_addr;
             r2_en=is_3r;
-            r2_addr=is_3r?rk_addr:5'b0;
-            oprand1=r1_data;
-            oprand2=is_3r?r2_data:(is_ui5?{27'b0,inst[14:10]}:(is_si12?si12_ext:32'b0));
-            id_info.ex_op=alu_op;
-            id_info.rw_en=1;
-            id_info.rw_addr=rd_addr;
+            r2_addr=rk_addr;
         end
         else if(is_branch)
         begin
@@ -224,9 +219,51 @@ module InstDecode(
         else if(is_jump)
         begin
             r1_en=is_jirl;
-            r1_addr=is_jirl?rj_addr:5'b0;
+            r1_addr=rj_addr;
             r2_en=0;
             r2_addr=5'b0;
+        end
+        else if(is_load_store)
+        begin
+            r1_en=1;
+            r1_addr=rj_addr;
+            r2_en=is_store;
+            r2_addr=rd_addr;
+        end
+        else if(is_si20)
+        begin
+            r1_en=0;
+            r1_addr=5'b0;
+            r2_en=0;
+            r2_addr=5'b0;
+        end
+        else begin
+            r1_en=0;
+            r1_addr=5'b0;
+            r2_en=0;
+            r2_addr=5'b0;
+        end
+    end
+    always @(*)
+    begin
+        if(is_3r||is_ui5||is_si12)
+        begin
+            oprand1=r1_data;
+            oprand2=is_3r?r2_data:(is_ui5?{27'b0,inst[14:10]}:(is_si12?si12_ext:32'b0));
+            id_info.ex_op=alu_op;
+            id_info.rw_en=1;
+            id_info.rw_addr=rd_addr;
+        end
+        else if(is_branch)
+        begin
+            oprand1 = 0;
+            oprand2 = 0;
+            id_info.ex_op = `ALU_XOR;
+            id_info.rw_en = 0;
+            id_info.rw_addr = 0;
+        end
+        else if(is_jump)
+        begin
             oprand1=(is_bl||is_jirl)?pc:32'b0;
             oprand2=(is_bl||is_jirl)?32'b100:32'b0;
             id_info.ex_op=(is_bl||is_jirl)?`ALU_ADD:`ALU_INVALID;
@@ -235,28 +272,26 @@ module InstDecode(
         end
         else if(is_load_store)
         begin
-            r1_en=1;
-            r1_addr=rj_addr;
-            r2_en=is_store;
-            r2_addr=is_store?rd_addr:5'b0;
             oprand1=r1_data;
             oprand2=si12_ext;
             id_info.ex_op=`ALU_ADD;
             id_info.rw_en=is_load;
-            id_info.rw_addr=is_load?rd_addr:5'b0;
+            id_info.rw_addr=rd_addr;
         end
         else if(is_si20)
         begin
-            r1_en=0;
-            r1_addr=5'b0;
-            r2_en=0;
-            r2_addr=5'b0;
             oprand1=si20_ext;
             oprand2=is_pcaddu12i?pc:32'b0;
             id_info.ex_op=`ALU_ADD;
             id_info.rw_en=1;
             id_info.rw_addr=rd_addr;
         end
+        else begin
+            oprand1 = 0;
+            oprand2 = 0;
+            id_info.rw_en = 0;
+            id_info.ex_op = `ALU_INVALID;
+            id_info.rw_addr=rd_addr;
+        end
     end
-
 endmodule
