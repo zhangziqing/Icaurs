@@ -9,7 +9,7 @@ jobs:
 
     runs-on: ubuntu-latest
     container:
-      image: verilator/verilator
+      image: verilator/verilator:4.210
     steps:
     - name: Checkout repository and submodules
       uses: actions/checkout@v2
