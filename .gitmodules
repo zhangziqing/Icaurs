@@ -3,7 +3,8 @@
 	url = https://gitee.com/loongson-edu/chiplab.git
 [submodule "lac_tracer"]
 	path = lac_tracer
-	url = git@github.com:zhangziqing/Lac_tracer.git
+	url = https://github.com/zhangziqing/Lac_tracer.git 
+	branch = LA
 [submodule "TCMAL"]
 	path = TCMAL
 	url = https://github.com/zhangziqing/TCMAL.git
