@@ -4,7 +4,7 @@ OBJ_DIR = $(BUILD_DIR)/obj
 CSRC := $(shell find lac_tracer/csrc/src -name "*.c")
 CCSRC := $(shell find lac_tracer/csrc/ -name "*.cpp" -or -name "*.cc")
 OBJS=$(CSRC:%.c=$(OBJ_DIR)/%.o)
-INC_PATH := $(abspath .lac_tracer/csrc/include/)
+INC_PATH := $(abspath ./lac_tracer/csrc/include/)
 CFLAGS += $(addprefix -I, $(INC_PATH))  -MMD -Wall -Werror -g -O2
 CXXFLAGS +=
 LIBS += -lreadline -ldl
