@@ -60,7 +60,7 @@ module MemoryAccess(
                 dpi_pmem_read(mem_info.rw_data,ex_info.ex_result,1);
                 mem_info.rw_data={{16{1'b0}},mem_info.rw_data[31:16]};
             end
-、
+
         endcase
     end
 
