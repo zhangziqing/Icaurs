@@ -62,7 +62,8 @@ module MemoryAccess(
                 mem_info.rw_data={{16{1'b0}},mem_info.rw_data[31:16]};
 
             end
-            
+            default:dpi_pmem_write(32'h00000000,ex_info.ex_result,0,4'b0000);
+
         endcase
     end
 
