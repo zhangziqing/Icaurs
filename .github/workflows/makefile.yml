@@ -13,8 +13,8 @@ jobs:
     steps:
     - name: Checkout repository and submodules
       uses: actions/checkout@v2
-      with:
-        submodules: recursive
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
     - name: Dependency
       run: apt-get update && apt-get install -y libreadline-dev
     - name: Run
