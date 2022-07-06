@@ -81,7 +81,7 @@ module InstDecode(
 
     wire is_load_store,is_store,is_load;
     assign is_load_store = ~|(inst[31:29] ^ 3'b001);
-    assign is_store = is_load_store && ~|(inst[28:24] == 5'b01001);
+    assign is_store = is_load_store && ~|(inst[28:24] ^ 5'b01001);
     assign is_load = is_load_store && (!is_store);
 
     //alu_op

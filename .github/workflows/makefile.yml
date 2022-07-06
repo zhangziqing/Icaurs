@@ -18,4 +18,4 @@ jobs:
     - name: Dependency
       run: apt-get update && apt-get install -y libreadline-dev
     - name: Run
-      run: make run
+      run: make run ARGS="-b -l build/log.txt"

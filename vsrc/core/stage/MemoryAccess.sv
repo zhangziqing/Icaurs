@@ -21,7 +21,6 @@ module MemoryAccess(
     
     //TODO:
 //     assign mem_info.rw_data = 0;
-    always_comb $display("read/write at addr : %x\n",mem_addr);
     always_comb dpi_pmem_read(mem_read_result_aligned,mem_addr,mem_read_en);
     always_comb begin:shift
        case(ex_info.ex_result[1:0])
@@ -36,7 +35,6 @@ module MemoryAccess(
        endcase
     end:shift
     always_comb begin
-
         case (ex_info.lsu_op)
             4'b0100:begin  //ST.B
                 case(ex_info.ex_result[1:0])

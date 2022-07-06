@@ -10,7 +10,7 @@
 
 //implentation specific width
 
-`define EXU_OP_WIDTH 5
+`define EXU_OP_WIDTH 6
 `define EXU_OP_NUM 16
 
 
