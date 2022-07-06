@@ -9,13 +9,13 @@ jobs:
 
     runs-on: ubuntu-latest
     container:
-      image: verilator/verilator
+      image: verilator/verilator:4.210
     steps:
+    - name: Dependency
+      run: apt-get update && apt-get install -y libreadline-dev openssh-client
     - name: Checkout repository and submodules
       uses: actions/checkout@v2
-      with:
-        submodules: recursive
-    - name: Dependency
-      run: apt-get update && apt-get install -y libreadline-dev
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
     - name: Run
       run: make run ARGS="-b -l build/log.txt"
