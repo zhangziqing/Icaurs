@@ -13,5 +13,6 @@
 `define ALU_SRA  5'b01011
 `define ALU_SLT  5'b01100
 `define ALU_MULH 5'b01101
+`define ALU_SLTU 5'b01110
 
 `define ALU_INVALID 5'b11111

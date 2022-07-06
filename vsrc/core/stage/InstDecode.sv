@@ -22,12 +22,12 @@ module InstDecode(
         r2 : regRead2;
         rw : regWrite
     */
-    output                          r1_en,
-    output  [`REG_WIDTH - 1 : 0]    r1_addr,
-    input   [`DATA_WIDTH - 1: 0]    r1_data,
-    output                          r2_en,
-    output  [`REG_WIDTH - 1 : 0]    r2_addr,
-    input   [`DATA_WIDTH - 1: 0]    r2_data,
+    output  logic                         r1_en,
+    output  logic [`REG_WIDTH - 1 : 0]    r1_addr,
+    input   logic [`DATA_WIDTH - 1: 0]    r1_data,
+    output  logic                         r2_en,
+    output  logic [`REG_WIDTH - 1 : 0]    r2_addr,
+    input   logic [`DATA_WIDTH - 1: 0]    r2_data,
 
 
     //stage interface
@@ -38,17 +38,17 @@ module InstDecode(
 );
 
     //generate the oprands
-    wire [`REG_WIDTH - 1 : 0] rd_addr = inst[4:0];
-    wire [`REG_WIDTH - 1 : 0] rj_addr = inst[9:5];
-    wire [`REG_WIDTH - 1 : 0] rk_addr = inst[14:10];
+    wire [`REG_WIDTH - 1 : 0] rd_addr;
+    wire [`REG_WIDTH - 1 : 0] rj_addr;
+    wire [`REG_WIDTH - 1 : 0] rk_addr;
     assign rd_addr = inst[4:0];
     assign rj_addr = inst[9:5];
     assign rk_addr = inst[14:10];
 
 
-    wire [11:0] si12 = inst[21:10];
-    wire [13:0] si14 = inst[23:10];
-    wire [19:0] si20 = inst[24:5];
+    wire [11:0] si12;
+    wire [13:0] si14;
+    wire [19:0] si20;
     assign si12 = inst[21:10];
     assign si14 = inst[23:10];
     assign si20 = inst[24:5];
@@ -85,8 +85,8 @@ module InstDecode(
     assign is_load = is_load_store && (!is_store);
 
     //alu_op
-    wire [`ALU_OP_WIDTH - 1 : 0] alu_op;
-    wire oprand_unsigned;
+    logic [`ALU_OP_WIDTH - 1 : 0] alu_op;
+    logic oprand_unsigned;
     always @(*)
     begin
         if(is_3r)
@@ -94,7 +94,7 @@ module InstDecode(
         `ADD_W:  begin alu_op=`ALU_ADD; oprand_unsigned=0; end
         `SUB_W:  begin alu_op=`ALU_SUB; oprand_unsigned=0; end
         `SLT:    begin alu_op=`ALU_SLT; oprand_unsigned=0; end
-        `SLTU:   begin alu_op=`ALU_SLT; oprand_unsigned=1; end
+        `SLTU:   begin alu_op=`ALU_SLTU;oprand_unsigned=1; end
         `NOR:    begin alu_op=`ALU_NOR; oprand_unsigned=0; end
         `AND:    begin alu_op=`ALU_AND; oprand_unsigned=0; end
         `OR:     begin alu_op=`ALU_OR;  oprand_unsigned=0; end
@@ -121,7 +121,7 @@ module InstDecode(
         else if(is_si12)
         case(inst[24:22])
         `SLTI:  begin alu_op=`ALU_SLT; oprand_unsigned=0; end
-        `SLTUI: begin alu_op=`ALU_SLT; oprand_unsigned=1; end
+        `SLTUI: begin alu_op=`ALU_SLTU;oprand_unsigned=1; end
         `ADDI_W:begin alu_op=`ALU_ADD; oprand_unsigned=0; end
         `ANDI:  begin alu_op=`ALU_AND; oprand_unsigned=0; end
         `ORI:   begin alu_op=`ALU_OR;  oprand_unsigned=0; end
@@ -138,8 +138,8 @@ module InstDecode(
 
     wire [`DATA_WIDTH - 1 : 0] branch_oprand1;
     wire [`DATA_WIDTH - 1 : 0] branch_oprand2;
-    assign branch_oprand1 = ((is_bltu||is_bgeu)&&r1_data[31])?(~r1_data+32'b1):r1_data;
-    assign branch_oprand2 = ((is_bltu||is_bgeu)&&r2_data[31])?(~r2_data+32'b1):r2_data;
+    assign branch_oprand1=r1_data;
+    assign branch_oprand2=r2_data;
 
     wire is_branch;
     wire branch_en;
@@ -174,8 +174,8 @@ module InstDecode(
             `BNE: if(branch_oprand1!=branch_oprand2) branch_en=1; else branch_en=0;
             `BLT: if(branch_oprand1< branch_oprand2) branch_en=1; else branch_en=0;
             `BGE: if(branch_oprand1>=branch_oprand2) branch_en=1; else branch_en=0;
-            `BLTU:if(branch_oprand1< branch_oprand2) branch_en=1; else branch_en=0;
-            `BGEU:if(branch_oprand1>=branch_oprand2) branch_en=1; else branch_en=0;
+            `BLTU:if($unsigned(branch_oprand1)<$unsigned(branch_oprand2)) branch_en=1; else branch_en=0;
+            `BGEU:if($unsigned(branch_oprand1)>=$unsigned(branch_oprand2)) branch_en=1; else branch_en=0;
             default:branch_en=0;
             endcase
         end
@@ -197,8 +197,8 @@ module InstDecode(
 
     wire [`DATA_WIDTH - 1 : 0 ] oprand1;
     wire [`DATA_WIDTH - 1 : 0 ] oprand2;
-    assign id_info.oprand1=(oprand_unsigned&&oprand1[31])?(~(oprand1)+32'b1):oprand1;
-    assign id_info.oprand2=(oprand_unsigned&&oprand2[31])?(~(oprand2)+32'b1):oprand2;
+    assign id_info.oprand1=oprand_unsigned?$unsigned(oprand1):oprand1;
+    assign id_info.oprand2=oprand_unsigned?$unsigned(oprand2):oprand2;
 
     always @(*)
     begin
@@ -225,7 +225,7 @@ module InstDecode(
         begin
             r1_en=is_jirl;
             r1_addr=is_jirl?rj_addr:5'b0;
-            r2=0;
+            r2_en=0;
             r2_addr=5'b0;
             oprand1=(is_bl||is_jirl)?pc:32'b0;
             oprand2=(is_bl||is_jirl)?32'b100:32'b0;
