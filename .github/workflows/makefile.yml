@@ -16,6 +16,6 @@ jobs:
     - name: Checkout repository and submodules
       uses: actions/checkout@v2
     - name: Checkout submodules
-      run: git submodule update --init --recursive
+      run: git submodule update --init --recursive && ls -R
     - name: Run
       run: make run ARGS="-b -l build/log.txt"
