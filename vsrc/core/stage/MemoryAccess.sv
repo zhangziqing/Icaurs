@@ -55,12 +55,10 @@ module MemoryAccess(
             4'b1000:begin//LD.BU
                 dpi_pmem_read(mem_info.rw_data,ex_info.ex_result,1);
                 mem_info.rw_data={{24{1'b0}},mem_info.rw_data[31:24]};
-
             end
             4'b1001:begin//LD.HU
                 dpi_pmem_read(mem_info.rw_data,ex_info.ex_result,1);
                 mem_info.rw_data={{16{1'b0}},mem_info.rw_data[31:16]};
-
             end
             default:dpi_pmem_write(32'h00000000,ex_info.ex_result,0,4'b0000);
 
