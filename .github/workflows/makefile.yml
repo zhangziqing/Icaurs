@@ -2,8 +2,9 @@ name: Makefile CI
 
 on:
   push:
+  pull_request:
     branches: [ "main" ]
-
+    
 jobs:
   build:
 
@@ -16,6 +17,6 @@ jobs:
     - name: Checkout repository and submodules
       uses: actions/checkout@v2
     - name: Checkout submodules
-      run: git submodule update --init --recursive && ls -R
+      run: git submodule update --init --recursive
     - name: Run
       run: make run ARGS="-b -l build/log.txt"
