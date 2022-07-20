@@ -28,7 +28,7 @@ begin
         ex_info.ex_op<=`EX_OP_INVALID;
         ex_info.lsu_op<=`LSU_OP_INVALID;
         ex_info.csr_op<=`CSR_OP_INVALID;
-        ex_info.rw_addr<=`ADDR_INVALID;
+        ex_info.rw_addr<=`REG_DATA_INVALID;
         ex_info.rw_en<=`EN_INVALID;
     end
     else

@@ -7,6 +7,7 @@
 `define DATA_INVALID 32'b0
 `define ADDR_INVALID 32'b0
 
+`define REG_DATA_INVALID 5'b0
 //id_stage_if
 `define LSU_OP_INVALID 4'b1111
 `define EX_OP_INVALID `ALU_INVALID

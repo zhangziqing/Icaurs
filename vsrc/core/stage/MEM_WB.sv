@@ -14,7 +14,7 @@ begin
         wb_info.pc<=`ADDR_INVALID;
         wb_info.inst<=`DATA_INVALID;
         wb_info.rw_data<=`DATA_INVALID;
-        wb_info.rw_addr<=`ADDR_INVALID;
+        wb_info.rw_addr<=`REG_DATA_INVALID;
         wb_info.rw_en<=`EN_INVALID;
     end
     else
