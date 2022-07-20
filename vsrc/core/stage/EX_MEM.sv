@@ -1,3 +1,4 @@
+`include "vsrc/include/constant.sv"
 module EX_MEM(
     input rst,
     input clk,

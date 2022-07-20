@@ -1,3 +1,4 @@
+`include "vsrc/include/constant.sv"
 module IF_ID(
     input rst,
     input clk,

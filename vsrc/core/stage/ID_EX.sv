@@ -1,3 +1,4 @@
+`include "vsrc/include/constant.sv"
 module ID_EX(
     input rst,
     input clk,
