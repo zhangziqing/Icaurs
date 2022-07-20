@@ -15,7 +15,7 @@ begin
         mem_info.pc<=`ADDR_INVALID;
         mem_info.ex_result<=`DATA_INVALID;
         mem_info.rw_en<=`EN_INVALID;
-        mem_info.rw_addr<=`REG_DATA_INVALID;
+        mem_info.rw_addr<=`REG_ADDR_INVALID;
         mem_info.lsu_data<=`DATA_INVALID;
         mem_info.lsu_op<=`LSU_OP_INVALID;
     end
