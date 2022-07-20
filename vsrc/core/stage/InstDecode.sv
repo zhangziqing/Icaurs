@@ -163,7 +163,7 @@ module InstDecode(
     assign is_branch=(is_branch_jump)&&(is_beq||is_bne||is_blt||is_bge||is_bltu||is_bgeu);
     assign is_jump=(is_branch_jump)&&(is_b||is_bl||is_jirl);
     assign branch_addr=pc+{{14{inst[25]}},inst[25:10],2'b00};
-    assign jump_addr=pc+{{4{inst[25]}},inst[25:0],2'b00};
+    assign jump_addr=(is_b||is_bl)?pc+{{4{inst[9]}},{inst[9:0], inst[25:10]},2'b0}:branch_oprand1+{{14{inst[25]}},inst[25:10],2'b00};
     assign jump_en=is_jump;
     always @(*)
     begin
