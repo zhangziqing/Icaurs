@@ -4,8 +4,8 @@
 `define EN_VALID 1'b1
 `define EN_INVALID 1'b0
 
-`define DATA_INVALID 32'h0
-`define ADDR_INVALID 32'h0
+`define DATA_INVALID 32'b0
+`define ADDR_INVALID 32'b0
 
 //id_stage_if
 `define LSU_OP_INVALID 4'b1111
