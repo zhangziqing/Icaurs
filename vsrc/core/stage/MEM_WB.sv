@@ -9,7 +9,7 @@ module MEM_WB(
 );
 always_ff @(posedge clk)
 begin
-    if(rst==1'b1)
+    if(rst==`RST_VALID)
     begin
         wb_info.pc<=`ADDR_INVALID;
         wb_info.inst<=`DATA_INVALID;
