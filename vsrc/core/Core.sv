@@ -9,28 +9,36 @@ module Core(
     input clock,
     input reset
 );
-    logic [`ADDR_WIDTH - 1 : 0] pc;
+    logic [`ADDR_WIDTH - 1 : 0] pc;//if_pc
     logic [`DATA_WIDTH - 1 : 0]inst;
 
-    branch_info_if br_info_if_0;
+    branch_info_if if_branch_info;
     
     InstFetch ifu_0(
         .clk(clock),
         .rst(reset),
         .pc(pc),
-        .branch_info(br_info_if_0)
+        .branch_info(if_branch_info)
     );
     always_comb dpi_pmem_read(inst, pc, !reset);
 
+    logic [`ADDR_WIDTH - 1 : 0] id_pc; 
+    IF_ID if_id(
+        .rst(reset),
+        .clk(clock),
+        .if_pc(pc),
+        .id_pc(id_pc)
+    );
 
     logic r1_en,r2_en,rw_en;
     logic [`REG_WIDTH - 1 : 0 ] r1_addr,r2_addr,rw_addr;
     logic [`DATA_WIDTH - 1 : 0] r1_data,r2_data,rw_data;
 
-    id_stage_if id_info_if_0;
+    branch_info_if id_branch_info;
+    id_stage_if id_info;
     InstDecode idu_0(
         .inst(inst),
-        .pc(pc),
+        .pc(id_pc),
         .r1_en(r1_en),
         .r1_addr(r1_addr),
         .r1_data(r1_data),
@@ -38,8 +46,8 @@ module Core(
         .r2_addr(r2_addr),
         .r2_data(r2_data),
 
-        .id_info(id_info_if_0),
-        .branch_info(br_info_if_0)
+        .id_info(id_info),
+        .branch_info(id_branch_info)
     );
 
     RegFile reg_0 (
@@ -56,22 +64,46 @@ module Core(
         .rw_data(rw_data)
     );
 
-    ex_stage_if ex_info_if_0;
-    
-    Execute exu_0(
-        .id_info(id_info_if_0),
-        .ex_info(ex_info_if_0)
+    id_stage_if id_info_ex; 
+    ID_EX id_ex(
+        .rst(reset),
+        .clk(clock),
+        .id_info(id_info),
+        .id_branch_info(id_branch_info),
+        .if_branch_info(if_branch_info),
+        .ex_info(id_info_ex)
     );
 
-    mem_stage_if mem_stage_if_0;
+    ex_stage_if ex_info;
+    Execute exu_0(
+        .id_info(id_info_ex),
+        .ex_info(ex_info)
+    );
+
+    ex_stage_if ex_info_mem;
+    EX_MEM ex_mem(
+        .rst(reset),
+        .clk(clock),
+        .ex_info(ex_info),
+        .mem_info(ex_info_mem)
+    );
+
+    mem_stage_if mem_info;
     MemoryAccess mem_0(
-        .ex_info(ex_info_if_0),
-        .mem_info(mem_stage_if_0)
+        .ex_info(ex_info_mem),
+        .mem_info(mem_info)
+    );
+
+    mem_stage_if wb_info;
+    MEM_WB mem_wb(
+        .rst(reset),
+        .clk(clock),
+        .mem_info(mem_info),
+        .wb_info(wb_info)
     );
 
     WriteBack wb_0(
-        .mem_info(mem_stage_if_0),
-
+        .mem_info(wb_info),
         .rw_en(rw_en),
         .rw_addr(rw_addr),
         .rw_data(rw_data)
