@@ -5,7 +5,7 @@ module IF_ID(
     //if output
     input [`ADDR_WIDTH - 1 : 0] if_pc,
     //id input
-    output [`ADDR_WIDTH - 1 : 0] id_pc
+    output reg [`ADDR_WIDTH - 1 : 0] id_pc
 );
 
 always_ff @(posedge clk)
