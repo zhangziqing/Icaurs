@@ -11,11 +11,11 @@ always_ff @(posedge clk)
 begin
     if(rst==1'b1)
     begin
-        regfile_info.pc<=`ADDR_INVALID;
-        regfile_info.inst<=`DATA_INVALID;
-        regfile_info.rw_data<=`DATA_INVALID;
-        regfile_info.rw_addr<=`ADDR_INVALID;
-        regfile_info.rw_en<=`EN_INVALID;
+        wb_info.pc<=`ADDR_INVALID;
+        wb_info.inst<=`DATA_INVALID;
+        wb_info.rw_data<=`DATA_INVALID;
+        wb_info.rw_addr<=`ADDR_INVALID;
+        wb_info.rw_en<=`EN_INVALID;
     end
     else
     begin
