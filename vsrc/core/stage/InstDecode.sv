@@ -1,6 +1,6 @@
 `include "vsrc/include/width_param.sv"
 `include "vsrc/include/opcode.sv"
-`include "vsrc/include/opreation.sv"
+`include "vsrc/include/operation.sv"
 
 /**
     There are four functions of Instruction decode module
@@ -13,8 +13,6 @@
 
 module InstDecode(
     input [`INST_WIDTH - 1 : 0]     inst,
-    input [`ADDR_WIDTH - 1 : 0]     pc,
-
     //register interface
 
     /*
@@ -31,12 +29,14 @@ module InstDecode(
 
 
     //stage interface
-    id_stage_if.o                 id_info,
+    if_stage_if.o                   if_info,
+    id_stage_if.o                   id_info,
+    branch_info_if.o                branch_info, 
 
     //branch info
-    branch_info_if.o               branch_info
+    output predict_miss
 );
-
+    wire [`ADDR_WIDTH - 1 : 0 ]pc = if_info.pc;
     //generate the oprands
     wire [`REG_WIDTH - 1 : 0] rd_addr;
     wire [`REG_WIDTH - 1 : 0] rj_addr;
@@ -185,10 +185,19 @@ module InstDecode(
 
     //control signal
     //1.branch_info
-    assign branch_info.branch_en=branch_en;
-    assign branch_info.jump_en=jump_en;
-    assign branch_info.branch_addr=branch_addr;
-    assign branch_info.jump_addr=jump_addr;
+
+    
+
+    wire bran_flag = branch_en || jump_en;
+    wire dir_pred_miss = bran_flag != if_info.branch;
+    wire target_pred_miss = bran_flag & ~|(branch_info.branch_addr ^ if_info.branch_addr);
+    assign predict_miss = dir_pred_miss | target_pred_miss;
+
+    assign branch_info.taken = bran_flag;
+    assign branch_info.branch_addr = jump_en ? jump_addr : branch_addr;
+    assign branch_info.pc = pc;
+    assign branch_info.branch_flag = is_branch_jump; 
+
     //2.regfile + id_info
     assign id_info.inst=inst;
     assign id_info.pc=pc;

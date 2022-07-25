@@ -1,5 +1,5 @@
 `include "vsrc/include/width_param.sv"
-`include "vsrc/include/opreation.sv"
+`include "vsrc/include/operation.sv"
 
 module Execute(
     //stage info
@@ -10,10 +10,10 @@ module Execute(
     logic [`ALU_OP_WIDTH - 1 : 0] alu_op=id_info.ex_op;//TODO
     logic [`DATA_WIDTH - 1 : 0 ]alu_res;
     ALU alu_0 (
-    .op(alu_op),
-    .oprand1(id_info.oprand1),
-    .oprand2(id_info.oprand2),
-    .result(alu_res)
+        .op(alu_op),
+        .oprand1(id_info.oprand1),
+        .oprand2(id_info.oprand2),
+        .result(alu_res)
     );
 
     logic [`DATA_WIDTH - 1 : 0 ]mdu_res;
