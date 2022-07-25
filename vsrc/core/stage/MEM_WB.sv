@@ -2,11 +2,32 @@
 module MEM_WB(
     input rst,
     input clk,
+    input ls_valid,//last stage valid
+    output ts_ready,//this stage ready
+    input ns_ready,//next stage ready
+    output ts_valid,//this stage valid
+    input stall,
+    input flush,
     //mem output
     mem_stage_if.i mem_info,
     //regfile input
     mem_stage_if.o wb_info
 );
+
+wire stall_stage = stall | !ls_valid | !ns_ready; 
+reg ts_valid_r,ts_ready_r;
+always_ff @(posedge clk)begin
+    if (rst)begin
+        ts_valid_r <= 0;
+        ts_ready_r <= 1;
+    end else begin
+        ts_valid_r <= !stall & ls_valid;
+        ts_ready_r <= !stall & ns_ready;
+    end
+end
+assign ts_valid = ts_valid_r;
+assign ts_ready = ts_ready_r;
+
 always_ff @(posedge clk)
 begin
     if(rst==`RST_VALID)
@@ -17,6 +38,13 @@ begin
         wb_info.rw_addr<=`REG_ADDR_INVALID;
         wb_info.rw_en<=`EN_INVALID;
     end
+    else if (stall_stage)begin
+        wb_info.pc <= wb_info.pc;
+        wb_info.inst <= wb_info.inst;
+        wb_info.rw_data <= wb_info.rw_data;
+        wb_info.rw_addr <= wb_info.rw_addr;
+        wb_info.rw_en <= wb_info.rw_en;
+    end 
     else
     begin
         //regfile_info<=mem_info;

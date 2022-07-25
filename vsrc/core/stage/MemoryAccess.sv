@@ -19,7 +19,7 @@ module MemoryAccess(
     assign mem_read_en = ex_info.lsu_op[2] == 0;
     assign mem_addr = {ex_info.ex_result[31:2],2'b0};
     
-    //TODO:
+    //TODO:  
 //     assign mem_info.rw_data = 0;
     always_comb dpi_pmem_read(mem_read_result_aligned,mem_addr,mem_read_en);
     always_comb begin:shift

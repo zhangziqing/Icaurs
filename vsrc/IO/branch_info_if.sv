@@ -2,22 +2,22 @@
 
 interface branch_info_if;
     logic   [`ADDR_WIDTH - 1 : 0 ] branch_addr;
-    logic   [`ADDR_WIDTH - 1 : 0 ] jump_addr;
-    logic                          branch_en;
-    logic                          jump_en;
+    logic                          taken;
+    logic                          branch_flag;
+    logic   [`ADDR_WIDTH - 1 : 0 ] pc;
 
     modport i(
         input   branch_addr,
-        input   jump_addr,
-        input                         branch_en,
-        input                         jump_en
+        input                         taken,
+        input                         branch_flag,
+        input pc
     );
 
     modport o(
         output  branch_addr,
-        output  jump_addr,
-        output                        branch_en,
-        output                        jump_en
+        output                        taken,
+        output                        branch_flag,
+        output  pc
     );
 
 endinterface

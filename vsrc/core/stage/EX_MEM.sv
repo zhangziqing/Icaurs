@@ -2,11 +2,32 @@
 module EX_MEM(
     input rst,
     input clk,
+    input ls_valid,//last stage valid
+    output ts_ready,//this stage ready
+    input ns_ready,//next stage ready
+    output ts_valid,//this stage valid
+    input flush,
+    input stall,
     //ex output
     ex_stage_if.i ex_info,
     //mem input
     ex_stage_if.o mem_info
 );
+
+wire stall_stage = stall | !ls_valid | !ns_ready; 
+reg ts_valid_r,ts_ready_r;
+always_ff @(posedge clk)begin
+    if (rst)begin
+        ts_valid_r <= 0;
+        ts_ready_r <= 1;
+    end else begin
+        ts_valid_r <= !stall & ls_valid;
+        ts_ready_r <= !stall & ns_ready;
+    end
+end
+assign ts_valid = ts_valid_r;
+assign ts_ready = ts_ready_r;
+
 always_ff @(posedge clk)
 begin
     if(rst==`RST_VALID)
@@ -18,6 +39,15 @@ begin
         mem_info.rw_addr<=`REG_ADDR_INVALID;
         mem_info.lsu_data<=`DATA_INVALID;
         mem_info.lsu_op<=`LSU_OP_INVALID;
+    end
+    else if (stall_stage)begin
+        mem_info.inst       <= mem_info.inst;
+        mem_info.pc         <= mem_info.pc;
+        mem_info.ex_result  <= mem_info.ex_result;
+        mem_info.rw_en      <= mem_info.rw_en;
+        mem_info.rw_addr    <= mem_info.rw_addr;
+        mem_info.lsu_data   <= mem_info.lsu_data;
+        mem_info.lsu_op     <= mem_info.lsu_op;
     end
     else
     begin

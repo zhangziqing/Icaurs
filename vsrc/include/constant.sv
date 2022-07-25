@@ -1,3 +1,4 @@
+`include "vsrc/include/operation.sv"    
 `define RST_VALID 1'b1
 `define RST_INVALID 1'b0
 
