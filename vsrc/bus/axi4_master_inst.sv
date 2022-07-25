@@ -1,7 +1,6 @@
 module axi4_master_inst(
-
     axi4_if.m axi4_master,
-    sram_if.s inst_sram_slave,
+    sram_if.s inst_sram_slave
 );
 
 

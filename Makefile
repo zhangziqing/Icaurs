@@ -5,7 +5,8 @@ CSRC := $(shell find lac_tracer/csrc/src -name "*.c")
 CCSRC := $(shell find lac_tracer/csrc/ -name "*.cpp" -or -name "*.cc")
 OBJS=$(CSRC:%.c=$(OBJ_DIR)/%.o)
 INC_PATH := $(abspath ./lac_tracer/csrc/include/)
-CFLAGS += $(addprefix -I, $(INC_PATH))  -MMD -Wall -Werror -g -O2
+COMMON_FLAGS = $(addprefix -I, $(INC_PATH))  -MMD -Wall -g -O2 
+CFLAGS += $(COMMON_FLAGS) -Werror
 CXXFLAGS +=
 LIBS += -lreadline -ldl
 
@@ -13,11 +14,13 @@ ARGS +=
 IMG += 
 
 VERILATOR = verilator
-VER_INCLUE = vsrc \
+VER_INCLUDE = vsrc \
 			vsrc/IO/ \
 			vsrc/core/ \
-			vsrc/core/stage/ 
-VER_FLAGS = $(addprefix -I,$(VER_INCLUE)) --cc --exe --build --trace -Wno-fatal \
+			vsrc/core/stage/ \
+			vsrc/core/utils/ \
+			vsrc/core/bpu/
+VER_FLAGS = $(addprefix -I,$(VER_INCLUDE)) --cc --exe --build --trace \
 			--top Core --prefix Vtop -Mdir $(BUILD_DIR)
 
 $(OBJ_DIR)/%.o:%.c
@@ -38,7 +41,7 @@ gdb:build
 build:$(OBJS)
 	@mkdir -p $(BUILD_DIR)
 	$(VERILATOR) vsrc/core/Core.sv $(VER_FLAGS) $(CCSRC) $(abspath $(OBJS)) \
-	-CFLAGS "-I$(INC_PATH)" $(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -CFLAGS ,$(CFLAGS)) $(addprefix -LDFLAGS , $(LIBS))
+	$(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -CFLAGS ,$(COMMON_FLAGS)) $(addprefix -LDFLAGS , $(LIBS))
 
 
 

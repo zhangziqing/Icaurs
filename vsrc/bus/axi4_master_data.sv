@@ -1,7 +1,6 @@
 module axi4_master_data(
-
     axi4_if.m axi4_master,
-    sram_if.s data_sram_slave,
+    sram_if.s data_sram_slave
 );
 
 //write address channel
