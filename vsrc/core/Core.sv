@@ -11,7 +11,6 @@ module Core(
     input reset
 );
     logic [`ADDR_WIDTH - 1 : 0] pc;//if_pc
-    logic [`DATA_WIDTH - 1 : 0]inst;
     logic [`ADDR_WIDTH - 1 : 0] flush_pc;
     logic [`ADDR_WIDTH - 1 : 0] predict_pc;
     logic flush;
@@ -36,12 +35,18 @@ module Core(
     BPU bpu_0(
         .clk(clock),
         .rst(reset),
+        .pc(pc),
         .ppc(predict_pc),
         .branch(predict_branch),
         .branch_info(branch_info)
     );
-    always_comb dpi_pmem_fetch(inst, pc, !reset);
+    reg [`INST_WIDTH - 1 : 0] inst;
+    wire [`INST_WIDTH - 1 : 0] inst_if;
 
+    always_comb dpi_pmem_fetch(inst_if, pc, !reset);
+    always_ff@(posedge clock)begin
+        inst <= inst_if;
+    end
     logic if_ready,if_valid,if_stall,if_flush;
     logic id_ready,id_valid,id_stall,id_flush;
     logic ex_ready,ex_valid,ex_stall,ex_flush;
@@ -57,11 +62,12 @@ module Core(
         .ts_ready(if_ready),
         .ts_valid(id_valid),
         .ns_ready(ex_ready),
-        .stall(load_flag1 | load_flag2),
-        .flush(0),
+        .stall(0),
+        .flush(if_flush),
         .if_info(if_info_if),
         .id_info(if_info_id)
     );
+    assign if_flush = glo_flush[3];
 
     logic r1_en,r2_en,rw_en,r1_rf_en,r2_rf_en;
     logic [`REG_WIDTH - 1 : 0 ] r1_addr,r2_addr,rw_addr,r1_rf_addr,r2_rf_addr;
@@ -138,12 +144,12 @@ module Core(
         .load_flag(load_flag2)
     );
 
-
+    assign id_stall = load_flag1 | load_flag2;
     id_stage_if id_info_ex; 
     ID_EX id_ex(
         .rst(reset),
         .clk(clock),
-        .stall(0),
+        .stall(id_stall),
         .flush(0),
         .ls_valid(id_valid),
         .ts_valid(ex_valid),
@@ -203,12 +209,12 @@ module Core(
     RegFile reg_0 (
         .clk(clock),
         .rst(reset),
-        .r1_en(r1_en),
-        .r1_addr(r1_addr),
-        .r1_data(r1_data),
-        .r2_en(r2_en),
-        .r2_addr(r2_addr),
-        .r2_data(r2_data),
+        .r1_en(r1_rf_en),
+        .r1_addr(r1_rf_addr),
+        .r1_data(r1_rf_data),
+        .r2_en(r2_rf_en),
+        .r2_addr(r2_rf_addr),
+        .r2_data(r2_rf_data),
         .rw_en(rw_en),
         .rw_addr(rw_addr),
         .rw_data(rw_data)
@@ -229,7 +235,7 @@ module Core(
     always_ff@(clock)
         trap(inst,reg_0.reg_file[4]);
     always_ff@(clock)
-        npc_update(inst,pc);
+        npc_update(inst,id_info.pc);
     initial begin
         reg_connect(reg_0.reg_file);
     end

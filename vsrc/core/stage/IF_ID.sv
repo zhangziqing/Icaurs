@@ -21,19 +21,18 @@ wire stall_stage = stall | !ls_valid | !ns_ready;
 reg ts_valid_r,ts_ready_r;
 always_ff @(posedge clk)begin
     if (rst)begin
-        ts_valid_r <= 0;
-        ts_ready_r <= 1;
+        ts_valid_r <= 1;
     end else begin
-        ts_valid_r <= !stall & ls_valid;
-        ts_ready_r <= !stall & ns_ready;
+        ts_valid_r <= ls_valid & !flush;
     end
 end
-assign ts_valid = 1;
-assign ts_ready = ts_ready_r;
+assign ts_valid = !stall && ts_valid_r;
+
+assign ts_ready = !stall & ns_ready;
 
 always_ff @(posedge clk)
 begin
-    if(rst==`RST_VALID)begin
+    if(rst || flush)begin
         id_info.pc <= `ADDR_INVALID;
         id_info.branch_addr <= `ADDR_INVALID;
         id_info.branch <= 0;

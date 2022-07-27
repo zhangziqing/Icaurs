@@ -19,18 +19,17 @@ reg ts_valid_r,ts_ready_r;
 always_ff @(posedge clk)begin
     if (rst)begin
         ts_valid_r <= 0;
-        ts_ready_r <= 1;
     end else begin
-        ts_valid_r <= !stall & ls_valid;
-        ts_ready_r <= !stall & ns_ready;
+        ts_valid_r <= ls_valid & !flush;
     end
 end
-assign ts_valid = ts_valid_r;
-assign ts_ready = ts_ready_r;
+assign ts_valid = ts_valid_r & !stall;
+assign ts_ready = !stall & ns_ready;
+
 
 always_ff @(posedge clk)
 begin
-    if(rst==`RST_VALID)
+    if(rst | flush)
     begin
         mem_info.inst<=`DATA_INVALID;
         mem_info.pc<=`ADDR_INVALID;

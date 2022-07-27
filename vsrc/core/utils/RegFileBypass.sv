@@ -42,5 +42,5 @@ module RegFileBypass(
     assign reg_req_data = reg_req_en ? bypass_data : 32'b0;
 
     wire mem_read_en = lsu_op[2] == 0;
-    assign load_flag = ex_wr_rf & mem_read_en;
+    assign load_flag = ex_wr_rf & mem_read_en & ~read_zero;
 endmodule
