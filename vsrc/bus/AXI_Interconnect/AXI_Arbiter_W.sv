@@ -65,7 +65,7 @@ module AXI_Arbiter_W (
     //枚举所有状态（logic四状态）
     enum logic [1:0] {
         AXI_MASTER_0,    //0号主机占用总线状态
-        AXI_MASTER_1,    //1号主机占用总线状态
+        AXI_MASTER_1    //1号主机占用总线状态
 
     } state,next_state;
 
@@ -118,9 +118,9 @@ module AXI_Arbiter_W (
     //利用状态寄存器输出控制结果
     always_comb begin
         case (state)
-            AXI_MASTER_0: {m0_rgrnt,m1_rgrnt} = 2'b10;
-            AXI_MASTER_1: {m0_rgrnt,m1_rgrnt} = 2'b01;
-            default:      {m0_rgrnt,m1_rgrnt} = 2'b00;
+            AXI_MASTER_0: {m0_wgrnt,m1_wgrnt} = 2'b10;
+            AXI_MASTER_1: {m0_wgrnt,m1_wgrnt} = 2'b01;
+            default:      {m0_wgrnt,m1_wgrnt} = 2'b00;
         endcase
     end
 

@@ -64,7 +64,7 @@ module AXI_Arbiter_R (
     //枚举所有状态（logic四状态）
     enum logic [1:0] {
         AXI_MASTER_0,    //0号主机占用总线状态
-        AXI_MASTER_1,    //1号主机占用总线状态
+        AXI_MASTER_1    //1号主机占用总线状态
 
     } state,next_state;
 
@@ -117,8 +117,4 @@ module AXI_Arbiter_R (
             default:      {m0_rgrnt,m1_rgrnt} = 2'b00;
         endcase
     end
-
-
-
-
 endmodule

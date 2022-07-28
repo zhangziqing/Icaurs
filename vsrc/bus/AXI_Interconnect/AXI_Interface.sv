@@ -81,7 +81,7 @@ interface axi4;
 	
 	//读数据通道	
 	logic	     		RID;
-	logic	[31:0]	RDATA;
+	logic	[31:0]		RDATA;
 	logic	[1:0]		RRESP;
 	logic	 			RLAST;
 	logic	        	RUSER;

@@ -20,7 +20,6 @@ assign axi4_master.ARLOCK  = 0;
 assign axi4_master.ARCACHE = 0;
 assign axi4_master.ARPROT  = 0;
 assign axi4_master.ARQOS = 4'b0000;
-assign axi4_master.RREADY = 1'b1;
 
 always_ff @(posedge axi4_master.ACLK)begin
     if (!axi4_master.ARESETn) begin
@@ -55,16 +54,15 @@ always_ff @(posedge axi4_master.ACLK)begin
                     
                 end
                 else
-                    read_state <= STATE_WADDR;
+                    read_state <= STATE_RADDR;
             end
             STATE_RDATA:begin
                 axi4_master.ARVALID <= 1'b0;
-                axi4_master.rid <= 1'b0;
                 if(axi4_master.RVALID && axi4_master.RLAST && inst_sram_slave.sram_rd_en)begin
                         axi4_master.RREADY <= 1'b1;
                         inst_sram_slave.sram_rd_valid <=1'b1;
                         read_state <= STATE_IDLE_R;
-                        inst_sram_slave.sram_rd_data <= RDATA;
+                        inst_sram_slave.sram_rd_data <= axi4_master.RDATA;
                     end
                 else
                     read_state <= STATE_RDATA;

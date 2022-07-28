@@ -1,17 +1,17 @@
-`include "vsrc/include/width_param.sv"
+`include "width_param.sv"
 interface sram_if;
 
     //read
-    logic [DATA_WIDTH - 1:0] sram_rd_data;
-    logic [ADDR_WIDTH - 1:0] sram_rd_addr;
+    logic [`DATA_WIDTH - 1:0] sram_rd_data;
+    logic [`ADDR_WIDTH - 1:0] sram_rd_addr;
     logic sram_rd_en;
     logic sram_rd_valid;
 
     //write
     logic sram_wr_en;
-    logic [ADDR_WIDTH - 1:0] sram_wr_addr;
-    logic [DATA_WIDTH - 1:0] sram_wr_data;
-    logic [`NUM_OF_BYTES - 1 : 0] w_mask;
+    logic [`ADDR_WIDTH - 1:0] sram_wr_addr;
+    logic [`DATA_WIDTH - 1:0] sram_wr_data;
+    logic [`NUM_OF_BYTES - 1 : 0] sram_wr_mask;
 
     modport m (
         output sram_rd_addr,
@@ -22,7 +22,18 @@ interface sram_if;
         output sram_wr_addr,
         output sram_wr_en,
         output sram_wr_data,
-        output sram_mask
+        output sram_wr_mask
+    );
+    modport s (
+        input sram_rd_addr,
+        input sram_rd_en,
+        output   sram_rd_valid,
+        output   sram_rd_data,
+
+        input sram_wr_addr,
+        input sram_wr_en,
+        input sram_wr_data,
+        input sram_wr_mask
     );
 
 

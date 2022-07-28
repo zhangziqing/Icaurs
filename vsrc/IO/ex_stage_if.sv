@@ -1,4 +1,4 @@
-`include "vsrc/include/width_param.sv"
+`include "width_param.sv"
 
 interface ex_stage_if;
 logic [`INST_WIDTH - 1:0] inst;

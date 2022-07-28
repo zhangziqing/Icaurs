@@ -1,4 +1,4 @@
-`include "vsrc/include/width_param.sv"
+`include "width_param.sv"
 
 module MemoryAccess(
     sram_if.m sram_io,
@@ -33,7 +33,7 @@ module MemoryAccess(
     assign sram_io.sram_wr_en   = mem_wr_en;
     assign sram_io.sram_wr_addr = mem_addr;
     assign sram_io.sram_wr_data = mem_wr_data;
-    assign sram_io.sram_mask    = mem_wr_mask;
+    assign sram_io.sram_wr_mask    = mem_wr_mask;
     always_comb begin:shift
        case(ex_info.ex_result[1:0])
         2'b00:

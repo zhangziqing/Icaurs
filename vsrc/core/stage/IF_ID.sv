@@ -1,5 +1,5 @@
-`include "vsrc/include/constant.sv"
-`include "vsrc/include/width_param.sv"
+`include "constant.sv"
+`include "width_param.sv"
 
 module IF_ID(
     input rst,

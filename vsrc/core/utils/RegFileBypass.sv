@@ -1,4 +1,4 @@
-`include "vsrc/include/width_param.sv"
+`include "width_param.sv"
 
 // Module data bypass
 

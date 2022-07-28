@@ -42,7 +42,8 @@ build:$(OBJS)
 	@mkdir -p $(BUILD_DIR)
 	$(VERILATOR) vsrc/core/Core.sv $(VER_FLAGS) $(CCSRC) $(abspath $(OBJS)) \
 	$(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -CFLAGS ,$(COMMON_FLAGS)) $(addprefix -LDFLAGS , $(LIBS))
-
+difftest:
+	make -C ${CHIPLAB_HOME}/sims/verilator/run_prog
 
 
 

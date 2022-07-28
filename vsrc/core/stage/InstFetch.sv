@@ -1,5 +1,5 @@
-`include "vsrc/include/width_param.sv"
-`include "vsrc/include/isa_spec.sv"
+`include "width_param.sv"
+`include "isa_spec.sv"
 module InstFetch(
     input clk,
     input rst,

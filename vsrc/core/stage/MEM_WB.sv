@@ -1,4 +1,4 @@
-`include "vsrc/include/constant.sv"
+`include "constant.sv"
 module MEM_WB(
     input rst,
     input clk,

@@ -1,4 +1,4 @@
-`include "vsrc/include/width_param.sv"
+`include "width_param.sv"
 
 module WriteBack (
     mem_stage_if.i mem_info,

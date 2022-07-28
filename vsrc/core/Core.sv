@@ -1,10 +1,10 @@
-`include "vsrc/include/width_param.sv"
-import "DPI-C" function void dpi_pmem_read(output int data, input int addr, input bit en);
-import "DPI-C" function void dpi_pmem_write(input int data, input int addr, input bit en, input bit[3:0] wr_mask);
-import "DPI-C" function void dpi_pmem_fetch(output int data, input int addr, input bit en);
-import "DPI-C" function void trap(input int inst,input int res);
-import "DPI-C" function void npc_update(input int inst,input int pc);
-import "DPI-C" function void reg_connect(input int a[]);
+`include "width_param.sv"
+// import "DPI-C" function void dpi_pmem_read(output int data, input int addr, input bit en);
+// import "DPI-C" function void dpi_pmem_write(input int data, input int addr, input bit en, input bit[3:0] wr_mask);
+// import "DPI-C" function void dpi_pmem_fetch(output int data, input int addr, input bit en);
+// import "DPI-C" function void trap(input int inst,input int res);
+// import "DPI-C" function void npc_update(input int inst,input int pc);
+// import "DPI-C" function void reg_connect(input int a[]);
 
 module Core(
     input clock,
@@ -53,12 +53,12 @@ module Core(
     assign iram.sram_rd_en = !reset;
     assign iram.sram_rd_addr = pc;
     assign inst_if = iram.sram_rd_data;
-    wire iram_data_valid = sram_rd_en;
+    wire iram_data_valid = iram.sram_rd_valid;
 
     assign iram.sram_wr_en = 0;
-    assign iram.sram.wr_addr = 0;
-    assign iram.sram.wr_data = 0;
-    assign iram.sram.sram_mask = 0;
+    assign iram.sram_wr_addr = 0;
+    assign iram.sram_wr_data = 0;
+    assign iram.sram_wr_mask = 0;
     always_ff@(posedge clock)begin
         inst <= inst_if;
     end
@@ -159,7 +159,7 @@ module Core(
         .load_flag(load_flag2)
     );
 
-    assign id_stall = load_flag1 | load_flag2;
+    assign id_stall = load_flag1 | load_flag2 | !iram.sram_rd_valid;
     id_stage_if id_info_ex; 
     ID_EX id_ex(
         .rst(reset),
@@ -248,11 +248,11 @@ module Core(
 
 
 
-    always_ff@(clock)
-        trap(inst,reg_0.reg_file[4]);
-    always_ff@(clock)
-        npc_update(inst,id_info.pc);
-    initial begin
-        reg_connect(reg_0.reg_file);
-    end
+    // always_ff@(clock)
+    //     trap(inst,reg_0.reg_file[4]);
+    // always_ff@(clock)
+    //     npc_update(inst,id_info.pc);
+    // initial begin
+    //     reg_connect(reg_0.reg_file);
+    // end
 endmodule:Core

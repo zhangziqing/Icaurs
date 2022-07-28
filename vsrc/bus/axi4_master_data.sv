@@ -16,7 +16,6 @@ assign axi4_master.AWQOS =4'b0000;
 
 //write data channel
 assign axi4_master.WID = 1;
-assign axi4_master.BID = 1;
 
 parameter STATE_IDLE_W = 3'b000;
 parameter STATE_WADDR = 3'b001;
@@ -66,8 +65,7 @@ always_ff @(posedge axi4_master.ACLK) begin
                 axi4_master.WDATA <= data_sram_slave.sram_wr_data;
                 if(axi4_master.WREADY && axi4_master.WVALID && data_sram_slave.sram_wr_en)begin
                     axi4_master.WLAST <= 1'b1;
-                    
-                    axi4_master.WSTRB <= data_sram_slave.sram_mask;
+                    axi4_master.WSTRB <= data_sram_slave.sram_wr_mask;
                     write_state <= STATE_WRESP;
                 end
                 else
@@ -103,7 +101,6 @@ assign axi4_master.ARLOCK  = 0;
 assign axi4_master.ARCACHE = 0;
 assign axi4_master.ARPROT  = 0;
 assign axi4_master.ARQOS = 4'b0000;
-assign axi4_master.RREADY = 1'b1;
 
 always_ff @(posedge axi4_master.ACLK)begin
     if (!axi4_master.ARESETn) begin
@@ -142,12 +139,11 @@ always_ff @(posedge axi4_master.ACLK)begin
             end
             STATE_RDATA:begin
                 axi4_master.ARVALID <= 1'b0;
-                axi4_master.rid <= 1'b1;
                 if(axi4_master.RVALID && axi4_master.RLAST && data_sram_slave.sram_rd_en)begin
                         axi4_master.RREADY <= 1'b1;
                         data_sram_slave.sram_rd_valid <=1'b1;
                         read_state <= STATE_IDLE_R;
-                        data_sram_slave.sram_rd_data <= RDATA;
+                        data_sram_slave.sram_rd_data <= axi4_master.RDATA;
                     end
                 else
                     read_state <= STATE_RDATA;

@@ -1,5 +1,5 @@
-`include "vsrc/include/width_param.sv"
-`include "vsrc/include/operation.sv"
+`include "width_param.sv"
+`include "operation.sv"
 
 module Execute(
     //stage info

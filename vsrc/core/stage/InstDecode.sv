@@ -1,6 +1,6 @@
-`include "vsrc/include/width_param.sv"
-`include "vsrc/include/opcode.sv"
-`include "vsrc/include/operation.sv"
+`include "width_param.sv"
+`include "opcode.sv"
+`include "operation.sv"
 
 /**
     There are four functions of Instruction decode module

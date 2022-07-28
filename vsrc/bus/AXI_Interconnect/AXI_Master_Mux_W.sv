@@ -225,7 +225,7 @@ module AXI_Master_Mux_W#(
     //---------------------------------------------------------
     //WREADY信号复用
     always_comb begin
-        case({m0_wgrnt,m1_wgrnt,m2_wgrnt,m3_wgrnt})
+        case({m0_wgrnt,m1_wgrnt})
             2'b10: begin 
                 m0_WREADY = m_WREADY;
                 m1_WREADY = '0;
