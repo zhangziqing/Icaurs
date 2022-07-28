@@ -16,4 +16,6 @@
 `define ALU_MUL  6'b100110
 `define ALU_MULH 6'b100010
 
+`define ALU_CSR  6'b000011
+
 `define ALU_INVALID 6'b011111

@@ -14,3 +14,6 @@
 `define LSU_OP_INVALID 4'b1111
 `define EX_OP_INVALID `ALU_INVALID
 `define CSR_OP_INVALID 3'b000
+
+//csr 
+`define CSR_ADDR_INVALID 14'hffff

@@ -3,9 +3,14 @@
 module MemoryAccess(
     // sram_if.m sram_io,
     mem_stage_if.o mem_info,
-    ex_stage_if.i ex_info
+    ex_stage_if.i ex_info,
+    //csr
+    csrData_pushForwward.i mem_csr_info,
+    csrData_pushForwward.o wb_csr_info
 );
-
+    assign wb_csr_info.rw_en=mem_csr_info.rw_en;
+    assign wb_csr_info.rw_addr=mem_csr_info.rw_addr;
+    assign wb_csr_info.rw_data=mem_csr_info.rw_data;
 
     assign mem_info.pc = ex_info.pc;
     assign mem_info.inst = ex_info.inst;

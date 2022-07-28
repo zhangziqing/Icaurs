@@ -62,14 +62,21 @@ module InstDecode(
 
 
     //oprand type
-    wire [13:0] csr_code;
-    assign csr_code = inst[23:10];
+    // wire [13:0] csr_num;
+    // assign csr_num = inst[23:10];
 
     //operation inst
-    wire is_3r,is_ui5,is_si12;
+    wire is_3r,is_ui5,is_si12,is_csr;
     assign is_3r = (~|(inst[31:22]^10'b0000000000)) && (inst[21]||inst[20]);
     assign is_ui5 = (~|(inst[31:20]^12'b000000000100)) && (~|(inst[17:15]^3'b001));
     assign is_si12 = ~|(inst[31:25]^7'b0000001);
+    assign is_csr = ~|(inst[31:24]^8'b00000100);
+
+    //csr inst
+    wire is_csrrd,is_csrwr,is_csrxchg;
+    assign is_csrrd = is_csr&&(~|(inst[9:5]^5'b00000));
+    assign is_csrwr = is_csr&&(~|(inst[9:5]^5'b00001));
+    assign is_csrxchg = is_csr&&(!is_csrrd)&&(!is_csrwr);
 
     wire is_si20,is_lu12i,is_pcaddu12i;
     assign is_si20=~|(inst[31:28]^4'b0001);
@@ -185,9 +192,6 @@ module InstDecode(
 
     //control signal
     //1.branch_info
-
-    
-
     wire bran_flag = branch_en || jump_en;
     wire dir_pred_miss = bran_flag != if_info.branch;
     wire target_pred_miss = bran_flag & ~|(branch_info.branch_addr ^ if_info.branch_addr);
@@ -203,6 +207,7 @@ module InstDecode(
     assign id_info.pc=pc;
     assign id_info.lsu_op=is_load_store?inst[25:22]:4'b1111;
     assign id_info.lsu_data=r2_data;
+    assign id_info.csr_op={is_csrrd,is_csrwr,is_csrxchg};
 
     logic [`DATA_WIDTH - 1 : 0 ] oprand1;
     logic [`DATA_WIDTH - 1 : 0 ] oprand2;
@@ -245,6 +250,13 @@ module InstDecode(
             r1_addr=5'b0;
             r2_en=0;
             r2_addr=5'b0;
+        end
+        else if(is_3r)
+        begin
+            r1_en=is_csrxchg;
+            r1_addr=rj_addr;
+            r2_en=1;
+            r2_addr=rd_addr;
         end
         else begin
             r1_en=0;
@@ -295,7 +307,16 @@ module InstDecode(
             id_info.rw_en=1;
             id_info.rw_addr=rd_addr;
         end
-        else begin
+        else if(is_csr)
+        begin
+            oprand1=is_csrxchg?r1_data:32'b0;
+            oprand2=r2_data;
+            id_info.ex_op=`ALU_CSR;
+            id_info.rw_en=1;
+            id_info.rw_addr=rd_addr;
+        end
+        else 
+        begin
             oprand1 = 0;
             oprand2 = 0;
             id_info.rw_en = 0;
