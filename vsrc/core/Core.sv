@@ -8,7 +8,13 @@ import "DPI-C" function void reg_connect(input int a[]);
 
 module Core(
     input clock,
-    input reset
+    input reset,
+    sram_if.m iram,
+    sram_if.m dram,
+    output [31:0] debug0_wb_pc,
+    output [ 3:0] debug0_wb_rf_wen,
+    output [ 4:0] debug0_wb_rf_wnum,
+    output [31:0] debug0_wb_rf_wdata
 );
     logic [`ADDR_WIDTH - 1 : 0] pc;//if_pc
     logic [`ADDR_WIDTH - 1 : 0] flush_pc;
@@ -43,7 +49,16 @@ module Core(
     reg [`INST_WIDTH - 1 : 0] inst;
     wire [`INST_WIDTH - 1 : 0] inst_if;
 
-    always_comb dpi_pmem_fetch(inst_if, pc, !reset);
+    // always_comb dpi_pmem_fetch(inst_if, pc, !reset);
+    assign iram.sram_rd_en = !reset;
+    assign iram.sram_rd_addr = pc;
+    assign inst_if = iram.sram_rd_data;
+    wire iram_data_valid = sram_rd_en;
+
+    assign iram.sram_wr_en = 0;
+    assign iram.sram.wr_addr = 0;
+    assign iram.sram.wr_data = 0;
+    assign iram.sram.sram_mask = 0;
     always_ff@(posedge clock)begin
         inst <= inst_if;
     end
@@ -182,7 +197,8 @@ module Core(
     mem_stage_if mem_info;
     MemoryAccess mem_0(
         .ex_info(ex_info_mem),
-        .mem_info(mem_info)
+        .mem_info(mem_info),
+        .sram_io(dram)
     );
 
     mem_stage_if wb_info;

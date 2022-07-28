@@ -1,7 +1,7 @@
 `include "vsrc/include/width_param.sv"
 
 module MemoryAccess(
-    // sram_if.m sram_io,
+    sram_if.m sram_io,
     mem_stage_if.o mem_info,
     ex_stage_if.i ex_info
 );
@@ -21,7 +21,19 @@ module MemoryAccess(
     
     //TODO:  
 //     assign mem_info.rw_data = 0;
-    always_comb dpi_pmem_read(mem_read_result_aligned,mem_addr,mem_read_en);
+    // always_comb dpi_pmem_read(mem_read_result_aligned,mem_addr,mem_read_en);
+    assign sram_io.sram_rd_en = mem_read_en;
+    assign sram_io.sram_rd_addr = mem_addr;
+    assign mem_read_result_aligned = sram_io.sram_rd_data;
+
+    logic [`DATA_WIDTH - 1 : 0 ] mem_wr_data;
+    logic mem_wr_en;
+    logic [`NUM_OF_BYTES - 1 : 0] mem_wr_mask;
+    
+    assign sram_io.sram_wr_en   = mem_wr_en;
+    assign sram_io.sram_wr_addr = mem_addr;
+    assign sram_io.sram_wr_data = mem_wr_data;
+    assign sram_io.sram_mask    = mem_wr_mask;
     always_comb begin:shift
        case(ex_info.ex_result[1:0])
         2'b00:
@@ -38,24 +50,74 @@ module MemoryAccess(
         case (ex_info.lsu_op)
             4'b0100:begin  //ST.B
                 case(ex_info.ex_result[1:0])
-                    2'b00:dpi_pmem_write(ex_info.lsu_data,mem_addr,1,4'b0001);
-                    2'b01:dpi_pmem_write(ex_info.lsu_data<<8,mem_addr,1,4'b0010);
-                    2'b10:dpi_pmem_write(ex_info.lsu_data<<16,mem_addr,1,4'b0100);
-                    2'b11:dpi_pmem_write(ex_info.lsu_data<<24,mem_addr,1,4'b1000);
+                    2'b00:begin
+                        mem_wr_data = ex_info.lsu_data;
+                        mem_wr_en   = 1;
+                        mem_wr_mask = 4'b0001;
+                    end 
+                    // dpi_pmem_write(ex_info.lsu_data,mem_addr,1,4'b0001);
+                    2'b01:begin 
+                        mem_wr_data = ex_info.lsu_data << 8;
+                        mem_wr_en   = 1;
+                        mem_wr_mask = 4'b0010;
+                    end
+                    // dpi_pmem_write(ex_info.lsu_data<<8,mem_addr,1,4'b0010);
+                    2'b10:begin
+                        mem_wr_data = ex_info.lsu_data << 16;
+                        mem_wr_en   = 1;
+                        mem_wr_mask = 4'b0100;    
+                    end
+                    // dpi_pmem_write(ex_info.lsu_data<<16,mem_addr,1,4'b0100);
+                    2'b11:begin
+                        mem_wr_data = ex_info.lsu_data << 24;
+                        mem_wr_en   = 1;
+                        mem_wr_mask = 4'b1000;    
+                    end
+                    // dpi_pmem_write(ex_info.lsu_data<<24,mem_addr,1,4'b1000);
                 endcase
             end
             4'b0101:begin  //ST.H
                 case(ex_info.ex_result[1:0])
-                    2'b00:dpi_pmem_write(ex_info.lsu_data,mem_addr,1,4'b0011);
-                    2'b01:dpi_pmem_write(ex_info.lsu_data,mem_addr,1,4'b0110);
-                    2'b10:dpi_pmem_write(ex_info.lsu_data<<16,mem_addr,1,4'b1100);
-                    default:dpi_pmem_write(32'h00000000,mem_addr,0,4'b0000);
+                    2'b00:begin
+                        mem_wr_data = ex_info.lsu_data;
+                        mem_wr_en   = 1;
+                        mem_wr_mask = 4'b0011;    
+                    end 
+                    // dpi_pmem_write(ex_info.lsu_data,mem_addr,1,4'b0011);
+                    2'b01:begin
+                        mem_wr_data = ex_info.lsu_data << 8;
+                        mem_wr_en   = 1;
+                        mem_wr_mask = 4'b0110;    
+                    end
+                    // dpi_pmem_write(ex_info.lsu_data,mem_addr,1,4'b0110);
+                    2'b10:begin 
+                        mem_wr_data = ex_info.lsu_data << 16;
+                        mem_wr_en   = 1;
+                        mem_wr_mask = 4'b1100;
+                    end
+                    // dpi_pmem_write(ex_info.lsu_data<<16,mem_addr,1,4'b1100);
+                    default:begin 
+                        mem_wr_data = ex_info.lsu_data;
+                        mem_wr_en   = 0;
+                        mem_wr_mask = 4'b0000;
+                    end
+                    // dpi_pmem_write(32'h00000000,mem_addr,0,4'b0000);
                 endcase
             end
             4'b0110:begin  //ST.W
                 case(ex_info.ex_result[1:0])
-                    2'b00:dpi_pmem_write(ex_info.lsu_data,mem_addr,1,4'b1111);
-                    default:dpi_pmem_write(32'h00000000,mem_addr,0,4'b0000);
+                    2'b00:begin 
+                        mem_wr_data = ex_info.lsu_data;
+                        mem_wr_en   = 1;
+                        mem_wr_mask = 4'b1111;
+                    end
+                    // dpi_pmem_write(ex_info.lsu_data,mem_addr,1,4'b1111);
+                    default:begin
+                        mem_wr_data = ex_info.lsu_data;
+                        mem_wr_en   = 0;
+                        mem_wr_mask = 4'b0000;
+                    end
+                    // dpi_pmem_write(32'h00000000,mem_addr,0,4'b0000);
                 endcase
             end
             4'b0010:begin  //LD.W
