@@ -5,61 +5,17 @@ module Execute(
     //stage info
     id_stage_if.i id_info,
     ex_stage_if.o ex_info,
-    //data relate
-    csrData_pushForwward.i mem_csr_info,
-    csrData_pushForwward.i wb_csr_info,
-    //csr reg data
-    input  [`DATA_WIDTH-1:0]    csr_reg_data,
-    output [`CSR_REG_WIDTH-1:0] csr_reg_addr,
+    //csr info
+    csrData_pushForwward.i id_csr_info,
     csrData_pushForwward.o ex_csr_info
 );
     //csr
-    logic [`DATA_WIDTH-1:0] csr_read_result;
-    assign csr_reg_addr=id_info.inst[23:10];
-    //1.write csr reg data
-    always @(*)
-    begin
-        if(id_info.csr_op==3'b100)//csrrd
-        begin
-            ex_csr_info.rw_en=0;
-            ex_csr_info.rw_addr=14'b0;
-            ex_csr_info.rw_data=32'b0;
-        end
-        else if(id_info.csr_op==3'b010)//csrwr
-        begin
-            ex_csr_info.rw_en=1;
-            ex_csr_info.rw_addr=csr_reg_addr;
-            ex_csr_info.rw_data=oprand2;
-        end
-        else if(id_info.csr_op==3'b001)//csrxchg
-        begin
-            ex_csr_info.rw_en=1;
-            ex_csr_info.rw_addr=csr_reg_addr;
-            ex_csr_info.rw_data=(oprand2&oprand1)|(csr_read_result&~oprand1);//TODO
-        end
-        else
-        begin
-            ex_csr_info.rw_en=0;
-            ex_csr_info.rw_addr=14'b0;
-            ex_csr_info.rw_data=32'b0;
-        end
-    end
-    //2.read csr reg data
-    always @(*)
-    begin
-        //data is related to mem
-        if(mem_csr_info.rw_en==1&&mem_csr_info.rw_addr==csr_reg_addr)
-            csr_read_result=mem_csr_info.rw_data;
-        //data is related to wb
-        else if(wb_csr_info.rw_en==1&&wb_csr_info.rw_addr==csr_reg_addr)
-            csr_read_result=wb_csr_info.rw_data;
-        else 
-            csr_read_result=csr_reg_data;
-    end
+    assign ex_csr_info.rw_en=id_csr_info.rw_en;
+    assign ex_csr_info.rw_addr=id_csr_info.rw_addr;
+    assign ex_csr_info.rw_data=id_csr_info.rw_data;
 
-
-    logic [`ALU_OP_WIDTH - 1 : 0] alu_op=id_info.ex_op;//TODO
-    logic [`DATA_WIDTH - 1 : 0 ]alu_res;
+    logic [`ALU_OP_WIDTH - 1 : 0] alu_op=id_info.ex_op;
+    logic [`DATA_WIDTH - 1 : 0 ] alu_res;
     ALU alu_0 (
         .op(alu_op),
         .oprand1(id_info.oprand1),
@@ -81,7 +37,8 @@ module Execute(
     assign ex_info.lsu_op = id_info.lsu_op;
     assign ex_info.rw_en = id_info.rw_en;
     assign ex_info.rw_addr = id_info.rw_addr;
-    assign ex_info.ex_result = alu_op[5] ? mdu_res : (alu_op!=`ALU_CSR?alu_res:csr_read_result);
+    assign ex_info.ex_result = alu_op[5] ? mdu_res : alu_res;
+
 endmodule
 
 module ALU(

@@ -2,16 +2,16 @@
 `include "vsrc/include/csr_reg.sv"
 `include "vsrc/IO/csr_reg.sv"
 
+`define n 5
+
 module CSR(
     input clk,
     input rst,
-    input GRLEN,
     input   [`CSR_REG_WIDTH-1:0] r_addr,
     output  [`DATA_WIDTH-1:0]    r_data,
     csrData_pushForwward.i csr_rw_info,
     csr_reg.o csr_info
 );
-    reg [`DATA_WIDTH-1:0] csr_reg [`CSR_REG_MAX_ADDR:`CSR_REG_MIN_ADDR];
 
     //1.read csr reg data
     always @(*)
@@ -90,11 +90,11 @@ module CSR(
             end    
             `CSR_ERA:
             begin
-                csr_info.era[GRLEN-1:0]=csr_rw_info.rw_data[GRLEN-1:0];
+                csr_info.era[31:0]=csr_rw_info.rw_data[31:0];
             end       
             `CSR_BADV:
             begin
-                csr_info.badv[GRLEN-1:0]=csr_rw_info.rw_data[GRLEN-1:0];
+                csr_info.badv[31:0]=csr_rw_info.rw_data[31:0];
             end      
             `CSR_EENTRY:
             begin
@@ -102,7 +102,7 @@ module CSR(
             end   
             `CSR_TLBIDX:
             begin
-                csr_info.tlbidx[n-1:0]=csr_rw_info.rw_data[n-1:0];
+                csr_info.tlbidx[`n-1:0]=csr_rw_info.rw_data[`n-1:0];
                 csr_info.tlbidx[29:24]=csr_rw_info.rw_data[29:24];
                 csr_info.tlbidx[31]=csr_rw_info.rw_data[31];
             end    
@@ -126,15 +126,15 @@ module CSR(
             end     
             `CSR_PGDL:
             begin
-                csr_info.pgdl[GRLEN-1:12]=csr_rw_info.rw_data[GRLEN-1:12];
+                csr_info.pgdl[31:12]=csr_rw_info.rw_data[31:12];
             end      
             `CSR_PGDH:
             begin
-                csr_info.pgdh[GRLEN-1:12]=csr_rw_info.rw_data[GRLEN-1:12];
+                csr_info.pgdh[31:12]=csr_rw_info.rw_data[31:12];
             end      
             `CSR_PGD:
             begin
-                csr_info.pgd[GRLEN-1:12]=csr_rw_info.rw_data[GRLEN-1:12];
+                csr_info.pgd[31:12]=csr_rw_info.rw_data[31:12];
             end    
             `CSR_CPUID:
             begin
@@ -142,19 +142,19 @@ module CSR(
             end    
             `CSR_SAVE0:
             begin
-                csr_info.save0[GRLEN-1:0]=csr_rw_info.rw_data[GRLEN-1:0];
+                csr_info.save0[31:0]=csr_rw_info.rw_data[31:0];
             end   
             `CSR_SAVE1:
             begin
-                csr_info.save1[GRLEN-1:0]=csr_rw_info.rw_data[GRLEN-1:0];
+                csr_info.save1[31:0]=csr_rw_info.rw_data[31:0];
             end  
             `CSR_SAVE2:
             begin
-                csr_info.save2[GRLEN-1:0]=csr_rw_info.rw_data[GRLEN-1:0];
+                csr_info.save2[31:0]=csr_rw_info.rw_data[31:0];
             end    
             `CSR_SAVE3:
             begin
-                csr_info.save3[GRLEN-1:0]=csr_rw_info.rw_data[GRLEN-1:0];
+                csr_info.save3[31:0]=csr_rw_info.rw_data[31:0];
             end    
             `CSR_TID:
             begin
@@ -162,7 +162,7 @@ module CSR(
             end      
             `CSR_TCFG:
             begin
-                csr_info.tcfg[n-1:0]=csr_rw_info.rw_data[n-1:0];
+                csr_info.tcfg[`n-1:0]=csr_rw_info.rw_data[`n-1:0];
             end      
             `CSR_TVAL:
             begin
