@@ -51,7 +51,7 @@ difftest:
 run_sim:
 	make -C ${CHIPLAB_HOME}/sims/verilator/run_prog run
 clean_sim_env:
-	rm ${CHIPLAB_HOME}/IP/Icarus
+	rm -f ${CHIPLAB_HOME}/IP/Icarus
 	make -C ${CHIPLAB_HOME}/sims/verilator/run_prog clean
 
 
