@@ -1,52 +1,12 @@
-//=============================================================================
-//
-//Module Name:					AXI_Arbiter_R.sv
-//Department:					Xidian University
-//Function Description:	        AXI总线仲裁器读通道仲裁
-//
-//------------------------------------------------------------------------------
-//
-//Version 	Design		Coding		Simulata	  Review		Rel data
-//V1.0		Verdvana	Verdvana	Verdvana		  			2020-3-13
-//V1.1		Verdvana	Verdvana	Verdvana		  			2020-3-16
-//V1.2		Verdvana	Verdvana	Verdvana		  			2020-3-18
-//
-//------------------------------------------------------------------------------
-//
-//Version	Modified History
-//V1.0		4个AXI4总线主设备接口；
-//          8个AXI4总线从设备接口；
-//          从设备地址隐藏与读写地址的高三位；
-//          主设备仲裁优先级随上一次总线所有者向后顺延；
-//          Cyclone IV EP4CE30F29C8上综合后最高时钟频率可达80MHz+。
-//
-//V1.1      优化电路结构，状态机判断主设备握手请求信号后直接输出到对应从设备，省去一层MUX；
-//          数据、地址、ID、USER位宽可设置;
-//          时序不变，综合后最高时钟频率提高至100MHz+。	
-//
-//V1.2      进一步优化电路结构，精简状态机的状态；
-//          时序不变，综合后最高时钟频率提高至400MHz。
-//
-//=============================================================================
-
-`timescale 1ns/1ns
-
 module AXI_Arbiter_R (
-	/**********时钟&复位**********/
 	input                       ACLK,
 	input      	                ARESETn,
-	/********** 0号主控 **********/
     input                       m0_ARVALID,
     input                       m0_RREADY,
-	/********** 1号主控 **********/
     input                       m1_ARVALID,
     input                       m1_RREADY,
-
-    /******* 主控通用信号 ********/
-
     input                       m_RVALID,
     input                       m_RLAST,
-	
     output reg                  m0_rgrnt,
 	output reg	                m1_rgrnt
 
@@ -99,17 +59,13 @@ module AXI_Arbiter_R (
     end
 
 
-    //---------------------------------------------------------
-    //更新状态寄存器
     always_ff@(posedge ACLK, negedge ARESETn)begin
         if(!ARESETn)
-            state <= #TCO AXI_MASTER_0;         //默认状态为0号主机占用总线
+            state <= AXI_MASTER_0;         
         else
-            state <= #TCO next_state;
+            state <= next_state;
     end
 
-    //---------------------------------------------------------
-    //利用状态寄存器输出控制结果
     always_comb begin
         case (state)
             AXI_MASTER_0: {m0_rgrnt,m1_rgrnt} = 2'b10;

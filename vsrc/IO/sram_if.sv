@@ -13,6 +13,7 @@ interface sram_if;
     logic [`ADDR_WIDTH - 1:0] sram_wr_addr;
     logic [`DATA_WIDTH - 1:0] sram_wr_data;
     logic [`NUM_OF_BYTES - 1 : 0] sram_wr_mask;
+    logic sram_wr_busy;
 
     modport m (
         output sram_rd_addr,
@@ -24,7 +25,8 @@ interface sram_if;
         output sram_wr_addr,
         output sram_wr_en,
         output sram_wr_data,
-        output sram_wr_mask
+        output sram_wr_mask,
+        input  sram_wr_busy
     );
     modport s (
         input sram_rd_addr,
@@ -36,7 +38,8 @@ interface sram_if;
         input sram_wr_addr,
         input sram_wr_en,
         input sram_wr_data,
-        input sram_wr_mask
+        input sram_wr_mask,
+        output sram_wr_busy
     );
 
 

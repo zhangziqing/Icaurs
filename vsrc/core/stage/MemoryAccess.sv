@@ -120,6 +120,15 @@ module MemoryAccess(
                     // dpi_pmem_write(32'h00000000,mem_addr,0,4'b0000);
                 endcase
             end
+            default:begin
+                mem_wr_data = 0;
+                mem_wr_en   = 0;    
+                mem_wr_mask = 0;
+            end
+        endcase
+    end
+    always_comb begin
+        case (ex_info.lsu_op)
             4'b0010:begin  //LD.W
                 mem_info.rw_data = mem_read_result;
             end
@@ -140,6 +149,6 @@ module MemoryAccess(
             end
         endcase
     end
-
+    assign mem_info.ram_rd_en = mem_read_en;
 
 endmodule:MemoryAccess

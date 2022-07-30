@@ -45,7 +45,7 @@ build:$(OBJS)
 	$(VERILATOR) vsrc/core/Core.sv $(VER_FLAGS) $(CCSRC) $(abspath $(OBJS)) \
 	$(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -CFLAGS ,$(COMMON_FLAGS)) $(addprefix -LDFLAGS , $(LIBS))
 difftest:
-	ln -s ${LAC_HOME}/vsrc ${CHIPLAB_HOME}/IP/Icarus
+	ln -sf ${LAC_HOME}/vsrc ${CHIPLAB_HOME}/IP/Icarus
 	cd ${CHIPLAB_HOME}/sims/verilator/run_prog/ && ./configure.sh --run $(TESTCASE) $(ARGS)
 	make -C ${CHIPLAB_HOME}/sims/verilator/run_prog
 run_sim:

@@ -284,9 +284,9 @@ module core_top(
         cmt_tlb_index  <= 0                 ;
         cmt_cnt_inst   <= 0                 ;
         cmt_timer_64   <= 0                 ;
-        cmt_wen <=  core_inst.wb_info.rw_en     ;
-        cmt_wdest <= core_inst.wb_info.rw_addr    ;
-        cmt_wdata <= core_inst.wb_info.rw_data    ;
+        cmt_wen <=  core_inst.rw_en     ;
+        cmt_wdest <= core_inst.rw_addr    ;
+        cmt_wdata <= core_inst.rw_data    ;
         cmt_csr_rstat_en <= 0  ;
         cmt_csr_data <=     0  ; 
     end

@@ -30,13 +30,11 @@ always_ff @(posedge axi4_master.ACLK)begin
     if (!axi4_master.ARESETn) begin
         read_state <= STATE_IDLE_R;
         axi4_master.ARID <=0;
-        axi4_master.RREADY<=0;
         ram_rd_valid <= 0;
     end
     else
         case(read_state)
             STATE_IDLE_R:begin
-                axi4_master.RREADY <= 1'b0;
                 ram_rd_valid <= 0;
                 inst_sram_slave.sram_rd_data <= 32'b0;
                 if(inst_sram_slave.sram_rd_en)begin
@@ -50,7 +48,6 @@ always_ff @(posedge axi4_master.ACLK)begin
             STATE_RADDR:begin
                 axi4_master.ARID <= 0;
                 if(axi4_master.ARVALID && axi4_master.ARREADY)begin
-                    axi4_master.RREADY <= 1'b1;
                     read_state <= STATE_RDATA;
                 end
                 else
@@ -97,7 +94,7 @@ always_ff@(posedge axi4_master.ACLK)begin
         cancel_op <= 1;
 end
 assign axi4_master.ARVALID = read_state == STATE_RADDR;
-
+assign axi4_master.RREADY = read_state == STATE_RDATA;
 
 
 assign inst_sram_slave.sram_rd_valid = cancel_op & ram_rd_valid;

@@ -22,7 +22,7 @@ reg ts_valid_r,ts_ready_r;
 always_ff @(posedge clk)begin
     if (rst || flush)begin
         ts_valid_r <= 0;
-    end else if(ns_ready)begin
+    end else if(ts_ready)begin
         ts_valid_r <= ls_valid;
     end
 end

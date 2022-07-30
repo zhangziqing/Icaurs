@@ -22,7 +22,7 @@ module Core(
     logic flush;
     logic stall;
     branch_info_if branch_info;
-    if_stage_if if_info_if,if_info_id;
+    if_stage_if if_info_id,if_info;
     
     logic predict_branch;
 
@@ -44,7 +44,7 @@ module Core(
         .pc(pc),
         .valid(if_valid),
         .ns_ready(id_ready),
-        .if_info(if_info_if)
+        .if_info(if_info)
     );
     BPU bpu_0(
         .clk(clock),
@@ -70,6 +70,7 @@ module Core(
     
     logic [`ADDR_WIDTH - 1 : 0] id_pc; 
     logic load_flag1,load_flag2;
+    assign id_stall = !iram_data_valid;
     IF_ID if_id(
         .rst(reset),
         .clk(clock),
@@ -77,9 +78,9 @@ module Core(
         .ts_ready(id_ready),
         .ts_valid(id_valid),
         .ns_ready(ex_ready),
-        .stall(!iram_data_valid),
+        .stall(id_stall),
         .flush(if_flush),
-        .if_info(if_info_if),
+        .if_info(if_info),
         .id_info(if_info_id)
     );
     assign if_flush = glo_flush[3];
@@ -159,12 +160,12 @@ module Core(
         .load_flag(load_flag2)
     );
 
-    assign id_stall = load_flag1 | load_flag2;
+    assign ex_stall = load_flag1 | load_flag2;
     id_stage_if id_info_ex; 
     ID_EX id_ex(
         .rst(reset),
         .clk(clock),
-        .stall(id_stall),
+        .stall(ex_stall),
         .flush(0),
         .ls_valid(id_valid),
         .ts_valid(ex_valid),
@@ -181,10 +182,11 @@ module Core(
     );
 
     ex_stage_if ex_info_mem;
+    assign mem_stall = dram.sram_wr_en & dram.sram_wr_busy;
     EX_MEM ex_mem(
         .rst(reset),
         .clk(clock),
-        .stall(0),
+        .stall(mem_stall),
         .flush(0),
         .ls_valid(ex_valid),
         .ts_valid(mem_valid),
@@ -200,12 +202,12 @@ module Core(
         .mem_info(mem_info),
         .sram_io(dram)
     );
-
+    assign wb_stall = wb_info.ram_rd_en && !dram.sram_rd_valid;
     mem_stage_if wb_info;
     MEM_WB mem_wb(
         .rst(reset),
         .clk(clock),
-        .stall(0),
+        .stall(wb_stall),
         .flush(0),
         .ts_ready(wb_ready),
         .ts_valid(wb_valid),
@@ -217,6 +219,7 @@ module Core(
 
     WriteBack wb_0(
         .mem_info(wb_info),
+        .ram_rd_data(dram.sram_rd_data),
         .rw_en(rw_en),
         .rw_addr(rw_addr),
         .rw_data(rw_data)

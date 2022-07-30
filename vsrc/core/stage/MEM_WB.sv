@@ -19,7 +19,7 @@ reg ts_valid_r,ts_ready_r;
 always_ff @(posedge clk)begin
     if (rst || flush)begin
         ts_valid_r <= 0;
-    end else if(ns_ready)begin
+    end else if(ts_ready)begin
         ts_valid_r <= ls_valid;
     end
 end
@@ -34,6 +34,7 @@ begin
     begin
         wb_info.pc<=`ADDR_INVALID;
         wb_info.inst<=`DATA_INVALID;
+        wb_info.ram_rd_en <= 0;
         wb_info.rw_data<=`DATA_INVALID;
         wb_info.rw_addr<=`REG_ADDR_INVALID;
         wb_info.rw_en<=`EN_INVALID;
@@ -41,6 +42,7 @@ begin
     else if (stall_stage)begin
         wb_info.pc <= wb_info.pc;
         wb_info.inst <= wb_info.inst;
+        wb_info.ram_rd_en <= wb_info.ram_rd_en;
         wb_info.rw_data <= wb_info.rw_data;
         wb_info.rw_addr <= wb_info.rw_addr;
         wb_info.rw_en <= wb_info.rw_en;
@@ -50,6 +52,7 @@ begin
         //regfile_info<=mem_info;
         wb_info.pc<=mem_info.pc;
         wb_info.inst<=mem_info.inst;
+        wb_info.ram_rd_en<=mem_info.ram_rd_en;
         wb_info.rw_data<=mem_info.rw_data;
         wb_info.rw_addr<=mem_info.rw_addr;
         wb_info.rw_en<=mem_info.rw_en;
