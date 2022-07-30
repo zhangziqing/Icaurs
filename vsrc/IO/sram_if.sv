@@ -6,6 +6,7 @@ interface sram_if;
     logic [`ADDR_WIDTH - 1:0] sram_rd_addr;
     logic sram_rd_en;
     logic sram_rd_valid;
+    logic sram_cancel_rd;
 
     //write
     logic sram_wr_en;
@@ -18,6 +19,7 @@ interface sram_if;
         output sram_rd_en,
         input   sram_rd_valid,
         input   sram_rd_data,
+        output  sram_cancel_rd,
 
         output sram_wr_addr,
         output sram_wr_en,
@@ -27,6 +29,7 @@ interface sram_if;
     modport s (
         input sram_rd_addr,
         input sram_rd_en,
+        input sram_cancel_rd,
         output   sram_rd_valid,
         output   sram_rd_data,
 

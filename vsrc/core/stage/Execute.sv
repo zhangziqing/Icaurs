@@ -48,8 +48,12 @@ module ALU(
 
     logic [31:0] alu_oprand2;
     
-    assign alu_oprand2 = op[0] ? (~oprand2 + 1) : oprand2; 
-    assign {cout ,add_res } = oprand1 + alu_oprand2;
+    assign alu_oprand2 = op[0] ? ~oprand2 : oprand2; 
+    assign {cout ,add_res } = oprand1 + alu_oprand2 + op[0];
+
+    wire slt = oprand1[31] & ~oprand2[31] //op1 neg and op2 pos
+                | (~(oprand1[31] ^ oprand2[31]) & add_res[31]);
+    wire sltu = !cout;
     always_comb begin:ALU
         case (op)
             `ALU_ADD,`ALU_SUB  : result = add_res;
@@ -60,8 +64,8 @@ module ALU(
             `ALU_SLL  : result = oprand1 << oprand2[4:0];//sll.w
             `ALU_SRL  : result = oprand1 >> oprand2[4:0];//srl.w
             `ALU_SRA  : result = temp_oper >>> oprand2[4:0];//sra.w
-            `ALU_SLT  : result = (add_res[31] && !cout) ? 1 : 0;//slt
-            `ALU_SLTU : result = cout ? 0 : 1;//sltu
+            `ALU_SLT  : result = {31'b0, slt};//slt
+            `ALU_SLTU : result = {31'b0, sltu};//sltu
             default: result = 0;
         endcase
     end

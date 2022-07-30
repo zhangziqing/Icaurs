@@ -263,18 +263,34 @@ module core_top(
     assign d_axi_port.RLAST = m_RLAST;
 
     //difftest
-    wire cmt_valid = core_inst.wb_valid;
-    wire [`ADDR_WIDTH - 1 : 0] cmt_pc   = core_inst.wb_info.pc;
-    wire [`DATA_WIDTH - 1 : 0] cmt_inst = core_inst.wb_info.inst;
-    wire cmt_tlbfill_en = 0;
-    wire cmt_tlb_index = 0;
-    wire cmt_cnt_inst = 0;
-    wire cmt_timer_64 = 0;
-    wire cmt_wen      = core_inst.wb_info.rw_en;
-    wire cmt_wdest    = core_inst.wb_info.rw_addr;
-    wire cmt_wdata    = core_inst.wb_info.rw_data;
-    wire cmt_csr_rstat_en   = 0;
-    wire cmt_csr_data       = 0;             
+    reg cmt_valid ;
+    reg [`ADDR_WIDTH - 1 : 0] cmt_pc   ;
+    reg [`DATA_WIDTH - 1 : 0] cmt_inst ;
+    reg cmt_tlbfill_en ;
+    reg cmt_tlb_index ;
+    reg cmt_cnt_inst ;
+    reg cmt_timer_64 ;
+    reg cmt_wen      ;
+    reg cmt_wdest    ;
+    reg cmt_wdata    ;
+    reg cmt_csr_rstat_en   ;
+    reg cmt_csr_data       ;
+
+    always @(posedge aclk)begin
+        cmt_valid <= core_inst.wb_valid ;
+        cmt_pc    <= core_inst.wb_info.pc   ;
+        cmt_inst <=  0 ;
+        cmt_tlbfill_en <= 0                 ;
+        cmt_tlb_index  <= 0                 ;
+        cmt_cnt_inst   <= 0                 ;
+        cmt_timer_64   <= 0                 ;
+        cmt_wen <=  core_inst.wb_info.rw_en     ;
+        cmt_wdest <= core_inst.wb_info.rw_addr    ;
+        cmt_wdata <= core_inst.wb_info.rw_data    ;
+        cmt_csr_rstat_en <= 0  ;
+        cmt_csr_data <=     0  ; 
+    end
+    
     DifftestInstrCommit DifftestInstrCommit(
     .clock              (aclk           ),
     .coreid             (0              ),
@@ -350,7 +366,7 @@ DifftestLoadEvent DifftestLoadEvent(
     .vaddr              (cmt_ld_vaddr   )
 );
 
-	wire [`DATA_WIDTH - 1 : 0]	csr_crmd_diff_0= 0;
+	wire [`DATA_WIDTH - 1 : 0]	csr_crmd_diff_0= 32'h00000008;
 	wire [`DATA_WIDTH - 1 : 0]	csr_prmd_diff_0= 0;
 	wire [`DATA_WIDTH - 1 : 0]	csr_ectl_diff_0= 0;
 	wire [`DATA_WIDTH - 1 : 0]	csr_estat_diff_0= 0;
@@ -361,7 +377,7 @@ DifftestLoadEvent DifftestLoadEvent(
 	wire [`DATA_WIDTH - 1 : 0]	csr_tlbehi_diff_0= 0;
 	wire [`DATA_WIDTH - 1 : 0]	csr_tlbelo0_diff_0= 0;
 	wire [`DATA_WIDTH - 1 : 0]	csr_tlbelo1_diff_0= 0;
-	wire [`DATA_WIDTH - 1 : 0]	csr_asid_diff_0= 0;
+	wire [`DATA_WIDTH - 1 : 0]	csr_asid_diff_0= 32'h000a0000;
 	wire [`DATA_WIDTH - 1 : 0]	csr_pgdl_diff_0= 0;
 	wire [`DATA_WIDTH - 1 : 0]	csr_pgdh_diff_0= 0;
 	wire [`DATA_WIDTH - 1 : 0]	csr_save0_diff_0= 0;

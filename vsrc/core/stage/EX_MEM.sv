@@ -14,17 +14,18 @@ module EX_MEM(
     ex_stage_if.o mem_info
 );
 
-wire stall_stage = stall | !ls_valid | !ns_ready; 
+wire stall_stage = !ls_valid || !ts_ready; 
 reg ts_valid_r,ts_ready_r;
 always_ff @(posedge clk)begin
-    if (rst)begin
+    if (rst || flush)begin
         ts_valid_r <= 0;
-    end else begin
-        ts_valid_r <= ls_valid & !flush;
+    end else if(ns_ready)begin
+        ts_valid_r <= ls_valid;
     end
 end
-assign ts_valid = ts_valid_r & !stall;
-assign ts_ready = !stall & ns_ready;
+assign ts_valid = !stall && ts_valid_r;
+
+assign ts_ready = !ts_valid_r || (ns_ready && !stall);
 
 
 always_ff @(posedge clk)

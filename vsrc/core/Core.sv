@@ -27,6 +27,12 @@ module Core(
     logic predict_branch;
 
     logic [4 : 0] glo_flush;
+
+    logic if_ready,if_valid,if_stall,if_flush;
+    logic id_ready,id_valid,id_stall,id_flush;
+    logic ex_ready,ex_valid,ex_stall,ex_flush;
+    logic mem_ready,mem_valid,mem_stall,mem_flush;
+    logic wb_ready,wb_valid,wb_stall,wb_flush;
     InstFetch ifu_0(
         .clk(clock),
         .rst(reset),
@@ -34,8 +40,10 @@ module Core(
         .flush_pc(flush_pc),
         .branch(predict_branch),
         .predict_pc(predict_pc),
-        .stall(0),
+        .stall(if_stall),
         .pc(pc),
+        .valid(if_valid),
+        .ns_ready(id_ready),
         .if_info(if_info_if)
     );
     BPU bpu_0(
@@ -46,38 +54,30 @@ module Core(
         .branch(predict_branch),
         .branch_info(branch_info)
     );
-    reg [`INST_WIDTH - 1 : 0] inst;
-    wire [`INST_WIDTH - 1 : 0] inst_if;
+    wire [`INST_WIDTH - 1 : 0] inst;
 
     // always_comb dpi_pmem_fetch(inst_if, pc, !reset);
-    assign iram.sram_rd_en = !reset;
+    assign iram.sram_rd_en = if_valid;
     assign iram.sram_rd_addr = pc;
-    assign inst_if = iram.sram_rd_data;
+    assign inst = iram.sram_rd_data;
+    assign iram.sram_cancel_rd = 0;
     wire iram_data_valid = iram.sram_rd_valid;
 
     assign iram.sram_wr_en = 0;
     assign iram.sram_wr_addr = 0;
     assign iram.sram_wr_data = 0;
     assign iram.sram_wr_mask = 0;
-    always_ff@(posedge clock)begin
-        inst <= inst_if;
-    end
-    logic if_ready,if_valid,if_stall,if_flush;
-    logic id_ready,id_valid,id_stall,id_flush;
-    logic ex_ready,ex_valid,ex_stall,ex_flush;
-    logic mem_ready,mem_valid,mem_stall,mem_flush;
-    logic wb_ready,wb_valid,wb_stall,wb_flush;
     
     logic [`ADDR_WIDTH - 1 : 0] id_pc; 
     logic load_flag1,load_flag2;
     IF_ID if_id(
         .rst(reset),
         .clk(clock),
-        .ls_valid(1),
-        .ts_ready(if_ready),
+        .ls_valid(if_valid),
+        .ts_ready(id_ready),
         .ts_valid(id_valid),
         .ns_ready(ex_ready),
-        .stall(0),
+        .stall(!iram_data_valid),
         .flush(if_flush),
         .if_info(if_info_if),
         .id_info(if_info_id)
@@ -159,7 +159,7 @@ module Core(
         .load_flag(load_flag2)
     );
 
-    assign id_stall = load_flag1 | load_flag2 | !iram.sram_rd_valid;
+    assign id_stall = load_flag1 | load_flag2;
     id_stage_if id_info_ex; 
     ID_EX id_ex(
         .rst(reset),
