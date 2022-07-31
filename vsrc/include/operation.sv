@@ -12,8 +12,12 @@
 `define ALU_SLTU 6'b000101
 
 `define ALU_DIV  6'b100011
+`define ALU_DIVU 6'b110011
 `define ALU_MOD  6'b100111
+`define ALU_MODU 6'b110111
 `define ALU_MUL  6'b100110
+`define ALU_MULU 6'b110110
 `define ALU_MULH 6'b100010
+`define ALU_MULHU 6'b110010
 
 `define ALU_INVALID 6'b011111

@@ -56,7 +56,7 @@ module InstDecode(
     wire [`DATA_WIDTH - 1 : 0] si12_ext;
     wire [`DATA_WIDTH - 1 : 0] si20_ext;
     wire si12_ext_sign;
-    assign si12_ext_sign=is_load_store||(is_si12&&((alu_op==`ALU_ADD)||(alu_op==`ALU_SLT)));
+    assign si12_ext_sign=is_load_store||(is_si12&&((alu_op==`ALU_ADD)||(alu_op==`ALU_SLT)||(alu_op == `ALU_SLTU)));
     assign si12_ext=si12_ext_sign ? {{20{si12[11]}},si12} : {20'b0,si12};
     assign si20_ext={si20,12'b0};
 
@@ -86,47 +86,46 @@ module InstDecode(
 
     //alu_op
     logic [`ALU_OP_WIDTH - 1 : 0] alu_op;
-    logic oprand_unsigned;
     always @(*)
     begin
         if(is_3r)
         case(inst[20:15])
-        `ADD_W:  begin alu_op=`ALU_ADD; oprand_unsigned=0; end
-        `SUB_W:  begin alu_op=`ALU_SUB; oprand_unsigned=0; end
-        `SLT:    begin alu_op=`ALU_SLT; oprand_unsigned=0; end
-        `SLTU:   begin alu_op=`ALU_SLTU;oprand_unsigned=1; end
-        `NOR:    begin alu_op=`ALU_NOR; oprand_unsigned=0; end
-        `AND:    begin alu_op=`ALU_AND; oprand_unsigned=0; end
-        `OR:     begin alu_op=`ALU_OR;  oprand_unsigned=0; end
-        `XOR:    begin alu_op=`ALU_XOR; oprand_unsigned=0; end
-        `SLL_W:  begin alu_op=`ALU_SLL; oprand_unsigned=0; end
-        `SRL_W:  begin alu_op=`ALU_SRL; oprand_unsigned=0; end
-        `SRA_W:  begin alu_op=`ALU_SRA; oprand_unsigned=0; end
-        `MUL_W:  begin alu_op=`ALU_MUL; oprand_unsigned=0; end
-        `MULH_W: begin alu_op=`ALU_MULH;oprand_unsigned=0; end
-        `MULH_WU:begin alu_op=`ALU_MULH;oprand_unsigned=1; end
-        `DIV_W:  begin alu_op=`ALU_DIV; oprand_unsigned=0; end 
-        `MOD_W:  begin alu_op=`ALU_MOD; oprand_unsigned=0; end
-        `DIV_WU: begin alu_op=`ALU_DIV; oprand_unsigned=1; end
-        `MOD_WU: begin alu_op=`ALU_MOD; oprand_unsigned=1; end
-        default: begin alu_op=`ALU_INVALID; oprand_unsigned=0; end
+        `ADD_W:  begin alu_op=`ALU_ADD;  end
+        `SUB_W:  begin alu_op=`ALU_SUB;  end
+        `SLT:    begin alu_op=`ALU_SLT;  end
+        `SLTU:   begin alu_op=`ALU_SLTU; end
+        `NOR:    begin alu_op=`ALU_NOR;  end
+        `AND:    begin alu_op=`ALU_AND;  end
+        `OR:     begin alu_op=`ALU_OR;   end
+        `XOR:    begin alu_op=`ALU_XOR;  end
+        `SLL_W:  begin alu_op=`ALU_SLL;  end
+        `SRL_W:  begin alu_op=`ALU_SRL;  end
+        `SRA_W:  begin alu_op=`ALU_SRA;  end
+        `MUL_W:  begin alu_op=`ALU_MUL;  end
+        `MULH_W: begin alu_op=`ALU_MULH; end
+        `MULH_WU:begin alu_op=`ALU_MULHU; end
+        `DIV_W:  begin alu_op=`ALU_DIV;  end 
+        `MOD_W:  begin alu_op=`ALU_MOD;  end
+        `DIV_WU: begin alu_op=`ALU_DIVU;  end
+        `MOD_WU: begin alu_op=`ALU_MODU;  end
+        default: begin alu_op=`ALU_INVALID;  end
         endcase
         else if(is_ui5)
         case(inst[19:18])
-        `SLLI_W:begin alu_op=`ALU_SLL; oprand_unsigned=0; end
-        `SRLI_W:begin alu_op=`ALU_SRL; oprand_unsigned=0; end
-        `SRAI_W:begin alu_op=`ALU_SRA; oprand_unsigned=0; end
+        `SLLI_W:begin alu_op=`ALU_SLL;  end
+        `SRLI_W:begin alu_op=`ALU_SRL;  end
+        `SRAI_W:begin alu_op=`ALU_SRA;  end
         default:alu_op=`ALU_INVALID;
         endcase
         else if(is_si12)
         case(inst[24:22])
-        `SLTI:  begin alu_op=`ALU_SLT; oprand_unsigned=0; end
-        `SLTUI: begin alu_op=`ALU_SLTU;oprand_unsigned=1; end
-        `ADDI_W:begin alu_op=`ALU_ADD; oprand_unsigned=0; end
-        `ANDI:  begin alu_op=`ALU_AND; oprand_unsigned=0; end
-        `ORI:   begin alu_op=`ALU_OR;  oprand_unsigned=0; end
-        `XORI:  begin alu_op=`ALU_XOR; oprand_unsigned=0; end
-        default:begin alu_op=`ALU_INVALID; oprand_unsigned=0; end
+        `SLTI:  begin alu_op=`ALU_SLT;  end
+        `SLTUI: begin alu_op=`ALU_SLTU; end
+        `ADDI_W:begin alu_op=`ALU_ADD;  end
+        `ANDI:  begin alu_op=`ALU_AND;  end
+        `ORI:   begin alu_op=`ALU_OR;   end
+        `XORI:  begin alu_op=`ALU_XOR;  end
+        default:begin alu_op=`ALU_INVALID;  end
         endcase
     end
 
@@ -206,8 +205,8 @@ module InstDecode(
 
     logic [`DATA_WIDTH - 1 : 0 ] oprand1;
     logic [`DATA_WIDTH - 1 : 0 ] oprand2;
-    assign id_info.oprand1=oprand_unsigned?$unsigned(oprand1):oprand1;
-    assign id_info.oprand2=oprand_unsigned?$unsigned(oprand2):oprand2;
+    assign id_info.oprand1=oprand1;
+    assign id_info.oprand2=oprand2;
 
     always @(*)
     begin

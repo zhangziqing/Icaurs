@@ -78,20 +78,24 @@ module MDU(
     output logic [`DATA_WIDTH - 1 : 0] result 
     // output logic vaild
 );
-    logic [63: 0 ]mulres;
-    assign mulres = oprand1 * oprand2;
+    logic [63: 0 ] mulres;
+    wire  [63: 0 ] umul = oprand1 * oprand2;
+    wire  [63: 0 ] smul = $signed(oprand1) * $signed(oprand2);
+    assign mulres = op[4] ? umul : smul; 
     always_comb
         case(op)
             `ALU_MUL  : 
                 begin
                     result=mulres[31:0];
                 end
-            `ALU_MULH :
+            `ALU_MULH,`ALU_MULHU:
                 begin
                     result=mulres[63:32];
                 end
-            `ALU_DIV  : result = oprand1 / oprand2;
-            `ALU_MOD  : result = oprand1 % oprand2;
+            `ALU_DIVU : result = oprand1 / oprand2;
+            `ALU_MODU : result = oprand1 % oprand2;
+            `ALU_DIV  : result = $signed(oprand1) / $signed(oprand2);
+            `ALU_MOD  : result = $signed(oprand1) % $signed(oprand2);
             default:result = 0;
         endcase
 

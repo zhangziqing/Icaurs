@@ -1,3 +1,6 @@
+//=============================================================================
+//
+//Module Name:					AXI_Arbiter_R.sv
 module AXI_Arbiter_R (
 	input                       ACLK,
 	input      	                ARESETn,
@@ -61,11 +64,13 @@ module AXI_Arbiter_R (
 
     always_ff@(posedge ACLK, negedge ARESETn)begin
         if(!ARESETn)
-            state <= AXI_MASTER_0;         
+            state <= AXI_MASTER_0;        
         else
             state <= next_state;
     end
 
+    //---------------------------------------------------------
+    //利用状态寄存器输出控制结果
     always_comb begin
         case (state)
             AXI_MASTER_0: {m0_rgrnt,m1_rgrnt} = 2'b10;
