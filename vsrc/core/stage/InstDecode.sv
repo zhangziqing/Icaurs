@@ -44,7 +44,14 @@ module InstDecode(
     input  logic [`DATA_WIDTH-1:0]    csr_reg_data,
     output logic [`CSR_REG_WIDTH-1:0] csr_reg_addr,
     //3.output csr info
-    csrData_pushForwward.o id_csr_info
+    csrData_pushForwward.o id_csr_info,
+
+    //except
+    except_info.o id_except_info,
+
+    //time 64 from csr
+    input [63:0] timer_64,
+    input [31:0] csr_tid
 );
     wire [`ADDR_WIDTH - 1 : 0 ]pc = if_info.pc;
     //generate the oprands
@@ -71,16 +78,26 @@ module InstDecode(
     assign si20_ext={si20,12'b0};
 
 
-    //oprand type
-    // wire [13:0] csr_num;
-    // assign csr_num = inst[23:10];
+    //except
+    wire except_type_break,except_type_syscall,inst_invaild;
+    assign except_type_break=~|(inst[31:15]^`BREAK);
+    assign except_type_syscall=~|(inst[31:15]^`SYSCALL);
+    assign id_except_info.except_pc=if_info.pc;
+    assign id_except_info.except_type={16'b0,except_type_break,except_type_syscall,inst_invaild,13'b0};
 
     //operation inst
-    wire is_3r,is_ui5,is_si12,is_csr;
-    assign is_3r = (~|(inst[31:22]^10'b0000000000)) && (inst[21]||inst[20]);
+    wire is_3r,is_ui5,is_si12,is_csr,is_rdcnt;
+    assign is_3r = (~|(inst[31:22]^10'b0000000000)) && (inst[21]||inst[20]) && (!except_type_break) && (!except_type_syscall);
     assign is_ui5 = (~|(inst[31:20]^12'b000000000100)) && (~|(inst[17:15]^3'b001));
     assign is_si12 = ~|(inst[31:25]^7'b0000001);
     assign is_csr = ~|(inst[31:24]^8'b00000100);
+    assign is_rdcnt=~|(inst[31:11]^21'b000000000000000001100);
+
+    //rdcnt
+    wire is_rdcntid,is_rdcntvl,is_rdcntvh;
+    assign is_rdcntid=is_rdcnt&&(inst[10]==1'b0)&&(inst[4:0]==5'b00000);
+    assign is_rdcntvl=is_rdcnt&&(inst[10]==1'b0)&&(inst[9:5]==5'b00000);
+    assign is_rdcntvh=is_rdcnt&&(inst[10]==1'b1)&&(inst[9:5]==5'b00000);
 
     //csr inst
     wire is_csrrd,is_csrwr,is_csrxchg;
@@ -147,7 +164,7 @@ module InstDecode(
         endcase
     end
 
-    /**
+    /*
     *   register:0
     *   I12:1
     *   I20:2
@@ -268,7 +285,22 @@ module InstDecode(
             r2_en=1;
             r2_addr=rd_addr;
         end
-        else begin
+        else if(except_type_break||except_type_syscall)
+        begin
+            r1_en=0;
+            r1_addr=5'b0;
+            r2_en=0;
+            r2_addr=5'b0;
+        end
+        else if(is_rdcnt)
+        begin
+            r1_en=0;
+            r1_addr=5'b0;
+            r2_en=0;
+            r2_addr=5'b0;
+        end
+        else 
+        begin
             r1_en=0;
             r1_addr=5'b0;
             r2_en=0;
@@ -284,6 +316,7 @@ module InstDecode(
             id_info.ex_op=alu_op;
             id_info.rw_en=1;
             id_info.rw_addr=rd_addr;
+            inst_invaild=0;
         end
         else if(is_branch)
         begin
@@ -292,6 +325,7 @@ module InstDecode(
             id_info.ex_op = `ALU_XOR;
             id_info.rw_en = 0;
             id_info.rw_addr = 0;
+            inst_invaild=0;
         end
         else if(is_jump)
         begin
@@ -300,6 +334,7 @@ module InstDecode(
             id_info.ex_op=(is_bl||is_jirl)?`ALU_ADD:`ALU_INVALID;
             id_info.rw_en=is_bl||is_jirl;
             id_info.rw_addr=is_bl?5'b1:(is_jirl?rd_addr:5'b0);
+            inst_invaild=1;
         end
         else if(is_load_store)
         begin
@@ -308,6 +343,7 @@ module InstDecode(
             id_info.ex_op=`ALU_ADD;
             id_info.rw_en=is_load;
             id_info.rw_addr=rd_addr;
+            inst_invaild=0;
         end
         else if(is_si20)
         begin
@@ -316,6 +352,7 @@ module InstDecode(
             id_info.ex_op=`ALU_ADD;
             id_info.rw_en=1;
             id_info.rw_addr=rd_addr;
+            inst_invaild=0;
         end
         else if(is_csr)
         begin
@@ -324,6 +361,25 @@ module InstDecode(
             id_info.ex_op=`ALU_OR;
             id_info.rw_en=1;
             id_info.rw_addr=rd_addr;
+            inst_invaild=0;
+        end
+        else if(except_type_break||except_type_syscall)
+        begin
+            oprand1 = 0;
+            oprand2 = 0;
+            id_info.rw_en = 0;
+            id_info.ex_op = `ALU_INVALID;
+            id_info.rw_addr=rd_addr;
+            inst_invaild=0;
+        end
+        else if(is_rdcnt)
+        begin
+            oprand1 = is_rdcntid?csr_tid:(is_rdcntvh?timer_64[63:32]:timer_64[31:0]);
+            oprand2 = 0;
+            id_info.rw_en = 1;
+            id_info.ex_op = `ALU_OR;
+            id_info.rw_addr=is_rdcntid?rj_addr:rd_addr;
+            inst_invaild=0;
         end
         else 
         begin
@@ -332,6 +388,7 @@ module InstDecode(
             id_info.rw_en = 0;
             id_info.ex_op = `ALU_INVALID;
             id_info.rw_addr=rd_addr;
+            inst_invaild=1;
         end
     end
 

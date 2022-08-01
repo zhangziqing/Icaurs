@@ -14,16 +14,25 @@ module EX_MEM(
     ex_stage_if.o mem_info
     //csr info
     csrData_pushForwward.i ex_csr_info,
-    csrData_pushForwward.o mem_csr_info 
+    csrData_pushForwward.o mem_csr_info,
+    //except info
+    except_info.i ex_except_info,
+    except_info.o mem_except_info
 );
 wire stall_stage = stall | !ls_valid | !ns_ready; 
 reg ts_valid_r,ts_ready_r;
-always_ff @(posedge clk)begin
+always_ff @(posedge clk)
+begin
     if (rst)
     begin
         ts_valid_r <= 0;
         ts_ready_r <= 1;
     end 
+    else if(flush)
+    begin
+        ts_valid_r <= 0;
+        ts_ready_r <= 1;
+    end
     else 
     begin
         ts_valid_r <= !stall & ls_valid;
@@ -49,6 +58,27 @@ begin
         mem_csr_info.rw_en  <=`EN_INVALID;
         mem_csr_info.rw_addr<=`CSR_ADDR_INVALID;
         mem_csr_info.rw_data<=`DATA_INVALID;
+        //mem_except_info
+        mem_except_info.except_type <=`DATA_INVALID;
+        mem_except_info.except_pc   <=`ADDR_INVALID;
+    end
+    else if(flush)
+    begin
+        //mem_info
+        mem_info.inst       <=`DATA_INVALID;
+        mem_info.pc         <=`ADDR_INVALID;
+        mem_info.ex_result  <=`DATA_INVALID;
+        mem_info.rw_en      <=`EN_INVALID;
+        mem_info.rw_addr    <=`REG_ADDR_INVALID;
+        mem_info.lsu_data   <=`DATA_INVALID;
+        mem_info.lsu_op     <=`LSU_OP_INVALID;
+        //mem_csr_info
+        mem_csr_info.rw_en  <=`EN_INVALID;
+        mem_csr_info.rw_addr<=`CSR_ADDR_INVALID;
+        mem_csr_info.rw_data<=`DATA_INVALID;
+        //mem_except_info
+        mem_except_info.except_type <=`DATA_INVALID;
+        mem_except_info.except_pc   <=`ADDR_INVALID;
     end
     else if (stall_stage)
     begin
@@ -64,6 +94,9 @@ begin
         mem_csr_info.rw_en  <= mem_csr_info.rw_en;
         mem_csr_info.rw_addr<= mem_csr_info.rw_addr;
         mem_csr_info.rw_data<= mem_csr_info.rw_data;
+        //mem_except_info
+        mem_except_info.except_type <= mem_except_info.except_type;
+        mem_except_info.except_pc   <= mem_except_info.except_pc;
     end
     else
     begin
@@ -79,6 +112,9 @@ begin
         mem_csr_info.rw_en  <= ex_csr_info.rw_en;
         mem_csr_info.rw_addr<= ex_csr_info.rw_addr;
         mem_csr_info.rw_data<= ex_csr_info.rw_data;
+        //mem_except_info
+        mem_except_info.except_type <= ex_except_info.except_type;
+        mem_except_info.except_pc   <= ex_except_info.except_pc;
     end
 end
 endmodule:EX_MEM

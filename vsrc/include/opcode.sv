@@ -44,3 +44,7 @@
 //si20
 `define LU12I     3'b010
 `define PCADDU12I 3'b110
+
+//except
+`define BREAK     17'b00000000001010100
+`define SYSCALL   17'b00000000001010110

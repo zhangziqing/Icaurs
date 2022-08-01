@@ -7,8 +7,14 @@ module Execute(
     ex_stage_if.o ex_info,
     //csr info
     csrData_pushForwward.i id_csr_info,
-    csrData_pushForwward.o ex_csr_info
+    csrData_pushForwward.o ex_csr_info,
+    //except info
+    except_info.i id_except_info,
+    except_info.o ex_except_info
 );
+    //except 
+    assign ex_except_info.except_type  = id_except_info.except_type;
+    assign ex_except_info.except_pc    = id_except_info.except_pc;
     //csr
     assign ex_csr_info.rw_en=id_csr_info.rw_en;
     assign ex_csr_info.rw_addr=id_csr_info.rw_addr;
