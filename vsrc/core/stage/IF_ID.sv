@@ -1,5 +1,5 @@
-`include "vsrc/include/constant.sv"
-`include "vsrc/include/width_param.sv"
+`include "constant.sv"
+`include "width_param.sv"
 
 module IF_ID(
     input rst,
@@ -17,54 +17,36 @@ module IF_ID(
 );
 
 
-wire stall_stage = stall | !ls_valid | !ns_ready; 
+wire stall_stage = !ls_valid || !ts_ready ;//|| flush_r; 
 reg ts_valid_r,ts_ready_r;
-always_ff @(posedge clk)
-begin
-    if (rst)
-    begin
+always_ff @(posedge clk)begin
+    if (rst || flush)begin
         ts_valid_r <= 0;
-        ts_ready_r <= 1;
-    end 
-    else if(flush)
-    begin
-        ts_valid_r <= 0;
-        ts_ready_r <= 1;
-    end
-    else
-    begin
-        ts_valid_r <= !stall & ls_valid;
-        ts_ready_r <= !stall & ns_ready;
+    end else if(ts_ready)begin
+        ts_valid_r <= ls_valid;
     end
 end
-assign ts_valid = 1;
-assign ts_ready = ts_ready_r;
+
+assign ts_valid = !stall && ts_valid_r;
+
+assign ts_ready = !ts_valid_r || (ns_ready && !stall);
 
 always_ff @(posedge clk)
 begin
-    if(rst==`RST_VALID)
-    begin
-        id_info.pc          <= `ADDR_INVALID;
+    if(rst || flush)begin
+        id_info.pc <= `ADDR_INVALID;
         id_info.branch_addr <= `ADDR_INVALID;
-        id_info.branch      <= 0;
+        id_info.branch <= 0;
     end
-    else if(flush)
-    begin
-        id_info.pc          <= `ADDR_INVALID;
-        id_info.branch_addr <= `ADDR_INVALID;
-        id_info.branch      <= 0;
+    if (stall_stage)begin
+        id_info.pc <= id_info.pc;
+        id_info.branch_addr  <= id_info.branch_addr ;
+        id_info.branch  <= id_info.branch ;
     end
-    else if (stall_stage)
-    begin
-        id_info.pc          <= id_info.pc;
-        id_info.branch_addr <= id_info.branch_addr ;
-        id_info.branch      <= id_info.branch ;
-    end
-    else 
-    begin
-        id_info.pc          <= if_info.pc;
-        id_info.branch_addr <= if_info.branch_addr ;
-        id_info.branch      <= if_info.branch ;
+    else begin
+        id_info.pc <= if_info.pc;
+        id_info.branch_addr  <= if_info.branch_addr ;
+        id_info.branch  <= if_info.branch ;
     end
 end
 endmodule:IF_ID

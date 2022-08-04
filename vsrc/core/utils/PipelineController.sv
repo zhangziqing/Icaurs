@@ -1,4 +1,4 @@
-`include "vsrc/include/width_param.sv"  
+`include "width_param.sv"  
 
 module PipelineController(
     input predict_miss,
@@ -13,7 +13,7 @@ module PipelineController(
     output [ `ADDR_WIDTH - 1 : 0 ]  flush_pc
 );
 
-    assign flush = predict_miss ? 5'b10000 : 5'b0;
+    assign flush = predict_miss ? 5'b11000 : 5'b0;
 
     assign flush_pc = predict_miss  ?   real_addr :
                       exp_en        ?   trap_entry:

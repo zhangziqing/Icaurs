@@ -1,27 +1,38 @@
-`include "vsrc/include/width_param.sv"
-import "DPI-C" function void dpi_pmem_read(output int data, input int addr, input bit en);
-import "DPI-C" function void dpi_pmem_write(input int data, input int addr, input bit en, input bit[3:0] wr_mask);
-import "DPI-C" function void dpi_pmem_fetch(output int data, input int addr, input bit en);
-import "DPI-C" function void trap(input int inst,input int res);
-import "DPI-C" function void npc_update(input int inst,input int pc);
-import "DPI-C" function void reg_connect(input int a[]);
+`include "width_param.sv"
+// import "DPI-C" function void dpi_pmem_read(output int data, input int addr, input bit en);
+// import "DPI-C" function void dpi_pmem_write(input int data, input int addr, input bit en, input bit[3:0] wr_mask);
+// import "DPI-C" function void dpi_pmem_fetch(output int data, input int addr, input bit en);
+// import "DPI-C" function void trap(input int inst,input int res);
+// import "DPI-C" function void npc_update(input int inst,input int pc);
+// import "DPI-C" function void reg_connect(input int a[]);
 
 module Core(
     input clock,
-    input reset
+    input reset,
+    sram_if.m iram,
+    sram_if.m dram,
+    output [31:0] debug0_wb_pc,
+    output [ 3:0] debug0_wb_rf_wen,
+    output [ 4:0] debug0_wb_rf_wnum,
+    output [31:0] debug0_wb_rf_wdata
 );
     logic [`ADDR_WIDTH - 1 : 0] pc;//if_pc
-    logic [`DATA_WIDTH - 1 : 0]inst;
     logic [`ADDR_WIDTH - 1 : 0] flush_pc;
     logic [`ADDR_WIDTH - 1 : 0] predict_pc;
     logic flush;
     logic stall;
     branch_info_if branch_info;
-    if_stage_if if_info_if,if_info_id;
+    if_stage_if if_info_id,if_info;
     
     logic predict_branch;
 
     logic [4 : 0] glo_flush;
+
+    logic if_ready,if_valid,if_stall,if_flush;
+    logic id_ready,id_valid,id_stall,id_flush;
+    logic ex_ready,ex_valid,ex_stall,ex_flush;
+    logic mem_ready,mem_valid,mem_stall,mem_flush;
+    logic wb_ready,wb_valid,wb_stall,wb_flush;
     InstFetch ifu_0(
         .clk(clock),
         .rst(reset),
@@ -29,39 +40,63 @@ module Core(
         .flush_pc(flush_pc),
         .branch(predict_branch),
         .predict_pc(predict_pc),
-        .stall(0),
+        .stall(if_stall),
+        .ready(if_ready),
         .pc(pc),
-        .if_info(if_info_if)
+        .valid(if_valid),
+        .ns_ready(id_ready),
+        .if_info(if_info)
     );
     BPU bpu_0(
         .clk(clock),
         .rst(reset),
+        .pc(pc),
         .ppc(predict_pc),
         .branch(predict_branch),
         .branch_info(branch_info)
     );
-    always_comb dpi_pmem_fetch(inst, pc, !reset);
+    wire [`INST_WIDTH - 1 : 0] inst;
 
-    logic if_ready,if_valid,if_stall,if_flush;
-    logic id_ready,id_valid,id_stall,id_flush;
-    logic ex_ready,ex_valid,ex_stall,ex_flush;
-    logic mem_ready,mem_valid,mem_stall,mem_flush;
-    logic wb_ready,wb_valid,wb_stall,wb_flush;
+    // always_comb dpi_pmem_fetch(inst_if, pc, !reset);
+    assign iram.sram_rd_en = if_valid & if_ready;
+    assign iram.sram_rd_addr = pc;
+    assign inst = iram.sram_rd_data;
+    assign iram.sram_cancel_rd = 0;
+    wire iram_data_valid = iram.sram_rd_valid;
+
+    assign iram.sram_wr_en = 0;
+    assign iram.sram_wr_addr = 0;
+    assign iram.sram_wr_data = 0;
+    assign iram.sram_wr_mask = 0;
     
     logic [`ADDR_WIDTH - 1 : 0] id_pc; 
     logic load_flag1,load_flag2;
+    logic bypass_valid1,bypass_valid2;
+    logic inst_valid_sm;
+    
+    always @(posedge clock)begin
+        if (reset)
+            inst_valid_sm <= 0;
+        else if (reset || if_flush || (if_valid && id_ready))
+            inst_valid_sm <= 0;
+        else if(iram_data_valid)
+            inst_valid_sm <= 1;
+    end
+    wire inst_valid = inst_valid_sm ? inst_valid_sm : iram_data_valid;
+    assign id_stall = (~inst_valid) | load_flag1 | load_flag2;
     IF_ID if_id(
         .rst(reset),
         .clk(clock),
-        .ls_valid(1),
-        .ts_ready(if_ready),
+        .ls_valid(if_valid),
+        .ts_ready(id_ready),
         .ts_valid(id_valid),
         .ns_ready(ex_ready),
-        .stall(load_flag1 | load_flag2),
-        .flush(0),
-        .if_info(if_info_if),
+        .stall(id_stall),
+        .flush(if_flush),
+        .if_info(if_info),
         .id_info(if_info_id)
     );
+    assign if_flush = glo_flush[3];
 
     logic r1_en,r2_en,rw_en,r1_rf_en,r2_rf_en;
     logic [`REG_WIDTH - 1 : 0 ] r1_addr,r2_addr,rw_addr,r1_rf_addr,r2_rf_addr;
@@ -73,6 +108,7 @@ module Core(
 
     InstDecode idu_0(
         .inst(inst),
+        .inst_valid(inst_valid),
 
         .r1_en(r1_en),
         .r1_addr(r1_addr),
@@ -96,21 +132,28 @@ module Core(
         .ex_rw_addr(ex_info.rw_addr),
         .ex_rw_en(ex_info.rw_en),
         .ex_rw_data(ex_info.ex_result),
+        .ex_data_valid(ex_valid),
+        .ex_stall(ex_stall),
 
         .mem_rw_addr(mem_info.rw_addr),
         .mem_rw_en(mem_info.rw_en),
         .mem_rw_data(mem_info.rw_data),
+        .mem_data_valid(mem_valid),
+        .mem_stall(mem_stall),
 
-        .wb_rw_addr(wb_info.rw_addr),
-        .wb_rw_en(wb_info.rw_en),
-        .wb_rw_data(wb_info.rw_data),
+        .wb_rw_addr(rw_addr),
+        .wb_rw_en(rw_en),
+        .wb_rw_data(rw_data),
+        .wb_data_valid(wb_valid),
+        .wb_stall(wb_stall),
 
         .reg_en(r1_rf_en),
         .reg_addr(r1_rf_addr),
         .reg_data(r1_rf_data),
 
-        .lsu_op(ex_info.lsu_op),
-        .load_flag(load_flag1)
+        .ex_lsu_op(ex_info.lsu_op),
+        .mem_ram_rd_en(mem_info.ram_rd_en),
+        .hazard_flag(load_flag1)
     );
 
     RegFileBypass reg2_bypass(
@@ -121,29 +164,33 @@ module Core(
         .ex_rw_addr(ex_info.rw_addr),
         .ex_rw_en(ex_info.rw_en),
         .ex_rw_data(ex_info.ex_result),
+        .ex_data_valid(1),
 
         .mem_rw_addr(mem_info.rw_addr),
         .mem_rw_en(mem_info.rw_en),
         .mem_rw_data(mem_info.rw_data),
+        .mem_data_valid(1),
 
-        .wb_rw_addr(wb_info.rw_addr),
-        .wb_rw_en(wb_info.rw_en),
-        .wb_rw_data(wb_info.rw_data),
+        .wb_rw_addr(rd_en),
+        .wb_rw_en(rd_addr),
+        .wb_rw_data(rd_data),
+        .wb_data_valid(wb_valid),
 
         .reg_en(r2_rf_en),
         .reg_addr(r2_rf_addr),
         .reg_data(r2_rf_data),
         
-        .lsu_op(ex_info.lsu_op),
-        .load_flag(load_flag2)
+        .ex_lsu_op(ex_info.lsu_op),
+        .mem_ram_rd_en(mem_info.ram_rd_en),
+        .hazard_flag(load_flag2)
     );
 
-
+    assign ex_stall = 0;
     id_stage_if id_info_ex; 
     ID_EX id_ex(
         .rst(reset),
         .clk(clock),
-        .stall(0),
+        .stall(ex_stall),
         .flush(0),
         .ls_valid(id_valid),
         .ts_valid(ex_valid),
@@ -160,10 +207,12 @@ module Core(
     );
 
     ex_stage_if ex_info_mem;
+    logic exmem_stall;
+    assign mem_stall = dram.sram_wr_en& dram.sram_wr_busy;
     EX_MEM ex_mem(
         .rst(reset),
         .clk(clock),
-        .stall(0),
+        .stall(mem_stall),
         .flush(0),
         .ls_valid(ex_valid),
         .ts_valid(mem_valid),
@@ -174,41 +223,54 @@ module Core(
     );
 
     mem_stage_if mem_info;
+    lsu_info_if lsu_info_mem,lsu_info_wb;
+    logic mem_wb_stall;
     MemoryAccess mem_0(
+        .stall(exmem_stall),
         .ex_info(ex_info_mem),
-        .mem_info(mem_info)
+        .mem_info(mem_info),
+        .sram_io(dram),
+        .lsu_info(lsu_info_mem)
     );
-
+    assign wb_stall = wb_info.ram_rd_en && !dram.sram_rd_valid;
     mem_stage_if wb_info;
     MEM_WB mem_wb(
         .rst(reset),
         .clk(clock),
-        .stall(0),
+        .stall(wb_stall),
         .flush(0),
         .ts_ready(wb_ready),
         .ts_valid(wb_valid),
         .ls_valid(mem_valid),
         .ns_ready(1),
         .mem_info(mem_info),
-        .wb_info(wb_info)
+        .wb_info(wb_info),
+        .lsu_info(lsu_info_mem),
+        .lsu_info_out(lsu_info_wb)
     );
 
     WriteBack wb_0(
         .mem_info(wb_info),
+        .ram_rd_data(dram.sram_rd_data),
         .rw_en(rw_en),
         .rw_addr(rw_addr),
-        .rw_data(rw_data)
+        .rw_data(rw_data),
+        .lsu_info(lsu_info_wb),
+        .debug0_wb_rf_wdata(debug0_wb_rf_wdata),
+        .debug0_wb_rf_wnum(debug0_wb_rf_wnum),
+        .debug0_wb_rf_wen(debug0_wb_rf_wen),
+        .debug0_wb_pc(debug0_wb_pc)
     );
 
     RegFile reg_0 (
         .clk(clock),
         .rst(reset),
-        .r1_en(r1_en),
-        .r1_addr(r1_addr),
-        .r1_data(r1_data),
-        .r2_en(r2_en),
-        .r2_addr(r2_addr),
-        .r2_data(r2_data),
+        .r1_en(r1_rf_en),
+        .r1_addr(r1_rf_addr),
+        .r1_data(r1_rf_data),
+        .r2_en(r2_rf_en),
+        .r2_addr(r2_rf_addr),
+        .r2_data(r2_rf_data),
         .rw_en(rw_en),
         .rw_addr(rw_addr),
         .rw_data(rw_data)
@@ -224,13 +286,11 @@ module Core(
         .flush_pc(flush_pc)
     );
 
-
-
-    always_ff@(clock)
-        trap(inst,reg_0.reg_file[4]);
-    always_ff@(clock)
-        npc_update(inst,pc);
-    initial begin
-        reg_connect(reg_0.reg_file);
-    end
+    // always_ff@(clock)
+    //     trap(inst,reg_0.reg_file[4]);
+    // always_ff@(clock)
+    //     npc_update(inst,id_info.pc);
+    // initial begin
+    //     reg_connect(reg_0.reg_file);
+    // end
 endmodule:Core

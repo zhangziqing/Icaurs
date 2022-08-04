@@ -1,4 +1,5 @@
-`include "vsrc/include/constant.sv"
+<<<<<<< hth
+`include "constant.sv"
 module EX_MEM(
     input rst,
     input clk,
@@ -19,50 +20,22 @@ module EX_MEM(
     except_info.i ex_except_info,
     except_info.o mem_except_info
 );
-wire stall_stage = stall | !ls_valid | !ns_ready; 
+
+wire stall_stage = !ls_valid || !ts_ready; 
 reg ts_valid_r,ts_ready_r;
-always_ff @(posedge clk)
-begin
-    if (rst)
-    begin
+always_ff @(posedge clk)begin
+    if (rst || flush)begin
         ts_valid_r <= 0;
-        ts_ready_r <= 1;
-    end 
-    else if(flush)
-    begin
-        ts_valid_r <= 0;
-        ts_ready_r <= 1;
-    end
-    else 
-    begin
-        ts_valid_r <= !stall & ls_valid;
-        ts_ready_r <= !stall & ns_ready;
+    end else if(ts_ready)begin
+        ts_valid_r <= ls_valid;
     end
 end
-assign ts_valid = ts_valid_r;
-assign ts_ready = ts_ready_r;
+assign ts_valid = !stall && ts_valid_r;
+assign ts_ready = !ts_valid_r || (ns_ready && !stall);
 
 always_ff @(posedge clk)
 begin
-    if(rst==`RST_VALID)
-    begin
-        //mem_info
-        mem_info.inst       <=`DATA_INVALID;
-        mem_info.pc         <=`ADDR_INVALID;
-        mem_info.ex_result  <=`DATA_INVALID;
-        mem_info.rw_en      <=`EN_INVALID;
-        mem_info.rw_addr    <=`REG_ADDR_INVALID;
-        mem_info.lsu_data   <=`DATA_INVALID;
-        mem_info.lsu_op     <=`LSU_OP_INVALID;
-        //mem_csr_info
-        mem_csr_info.rw_en  <=`EN_INVALID;
-        mem_csr_info.rw_addr<=`CSR_ADDR_INVALID;
-        mem_csr_info.rw_data<=`DATA_INVALID;
-        //mem_except_info
-        mem_except_info.except_type <=`DATA_INVALID;
-        mem_except_info.except_pc   <=`ADDR_INVALID;
-    end
-    else if(flush)
+    if(rst | flush)
     begin
         //mem_info
         mem_info.inst       <=`DATA_INVALID;

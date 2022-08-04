@@ -1,5 +1,5 @@
-`include "vsrc/include/width_param.sv"
-`include "vsrc/include/operation.sv"
+`include "width_param.sv"
+`include "operation.sv"
 
 module Execute(
     //stage info
@@ -60,8 +60,12 @@ module ALU(
 
     logic [31:0] alu_oprand2;
     
-    assign alu_oprand2 = op[0] ? (~oprand2 + 1) : oprand2; 
-    assign {cout ,add_res } = oprand1 + alu_oprand2;
+    assign alu_oprand2 = op[0] ? ~oprand2 : oprand2; 
+    assign {cout ,add_res } = oprand1 + alu_oprand2 + op[0];
+
+    wire slt = oprand1[31] & ~oprand2[31] //op1 neg and op2 pos
+                | (~(oprand1[31] ^ oprand2[31]) & add_res[31]);
+    wire sltu = !cout;
     always_comb begin:ALU
         case (op)
             `ALU_ADD,`ALU_SUB  : result = add_res;
@@ -72,8 +76,8 @@ module ALU(
             `ALU_SLL  : result = oprand1 << oprand2[4:0];//sll.w
             `ALU_SRL  : result = oprand1 >> oprand2[4:0];//srl.w
             `ALU_SRA  : result = temp_oper >>> oprand2[4:0];//sra.w
-            `ALU_SLT  : result = (add_res[31] && !cout) ? 1 : 0;//slt
-            `ALU_SLTU : result = cout ? 0 : 1;//sltu
+            `ALU_SLT  : result = {30'b0, slt};//slt
+            `ALU_SLTU : result = {30'b0, sltu};//sltu
             default: result = 0;
         endcase
     end
@@ -86,20 +90,24 @@ module MDU(
     output logic [`DATA_WIDTH - 1 : 0] result 
     // output logic vaild
 );
-    logic [63: 0 ]mulres;
-    assign mulres = oprand1 * oprand2;
+    logic [63: 0 ] mulres;
+    wire  [63: 0 ] umul = oprand1 * oprand2;
+    wire  [63: 0 ] smul = $signed(oprand1) * $signed(oprand2);
+    assign mulres = op[4] ? umul : smul; 
     always_comb
         case(op)
             `ALU_MUL  : 
                 begin
                     result=mulres[31:0];
                 end
-            `ALU_MULH :
+            `ALU_MULH,`ALU_MULHU:
                 begin
                     result=mulres[63:32];
                 end
-            `ALU_DIV  : result = oprand1 / oprand2;
-            `ALU_MOD  : result = oprand1 % oprand2;
+            `ALU_DIVU : result = oprand1 / oprand2;
+            `ALU_MODU : result = oprand1 % oprand2;
+            `ALU_DIV  : result = $signed(oprand1) / $signed(oprand2);
+            `ALU_MOD  : result = $signed(oprand1) % $signed(oprand2);
             default:result = 0;
         endcase
 

@@ -1,4 +1,4 @@
-`include "vsrc/include/width_param.sv"
+`include "width_param.sv"
 
 interface branch_info_if;
     logic   [`ADDR_WIDTH - 1 : 0 ] branch_addr;

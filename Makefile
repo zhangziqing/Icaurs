@@ -12,6 +12,8 @@ LIBS += -lreadline -ldl
 
 ARGS += 
 IMG += 
+TESTCASE = func/func_lab3 
+
 
 VERILATOR = verilator
 VER_INCLUDE = vsrc \
@@ -42,9 +44,15 @@ build:$(OBJS)
 	@mkdir -p $(BUILD_DIR)
 	$(VERILATOR) vsrc/core/Core.sv $(VER_FLAGS) $(CCSRC) $(abspath $(OBJS)) \
 	$(addprefix -CFLAGS ,$(CXXFLAGS)) $(addprefix -CFLAGS ,$(COMMON_FLAGS)) $(addprefix -LDFLAGS , $(LIBS))
-
-
-
+difftest:
+	ln -sf ${LAC_HOME}/vsrc ${CHIPLAB_HOME}/IP/Icarus
+	cd ${CHIPLAB_HOME}/sims/verilator/run_prog/ && ./configure.sh --run $(TESTCASE) $(ARGS)
+	make -C ${CHIPLAB_HOME}/sims/verilator/run_prog
+run_sim:
+	make -C ${CHIPLAB_HOME}/sims/verilator/run_prog run
+clean_sim_env:
+	rm -f ${CHIPLAB_HOME}/IP/Icarus
+	make -C ${CHIPLAB_HOME}/sims/verilator/run_prog clean
 
 
 clean:

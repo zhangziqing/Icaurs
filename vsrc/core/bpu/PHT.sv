@@ -1,5 +1,5 @@
 module PHT#(
-    PHT_WIDTH = 6
+    PHT_WIDTH   = 6
 )(
     input clk,
     input rst,
@@ -19,12 +19,12 @@ module PHT#(
         10 : weak take
         11 : strong take
     */
-    reg [1:0] pht_entry [0 : PHT_SIZE - 1];
     parameter PHT_SIZE = 1 << PHT_WIDTH;
+    reg [1:0] pht_entry [0 : PHT_SIZE - 1];
 
     wire phte_add = ~&pht_entry[update_addr] & taken; 
     wire phte_sub = |pht_entry[update_addr] & ~taken;
-    genvar i;
+    integer i;
     always_ff @(posedge clk)begin
         if (rst)begin
             for (i = 0; i < PHT_SIZE; i = i + 1 )begin

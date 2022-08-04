@@ -1,4 +1,4 @@
-`include "vsrc/include/constant.sv"
+`include "constant.sv"
 module MEM_WB(
     input rst,
     input clk,
@@ -8,32 +8,32 @@ module MEM_WB(
     output ts_valid,//this stage valid
     input stall,
     input flush,
-    //mem output
     mem_stage_if.i mem_info,
+    lsu_info_if.i lsu_info,
     //regfile input
     mem_stage_if.o wb_info,
+    lsu_info_if.o lsu_info_out,
     //csr
     csrData_pushForwward.i mem_csr_info,
     csrData_pushForwward.o wb_csr_info
 );
 
-wire stall_stage = stall | !ls_valid | !ns_ready; 
+wire stall_stage = !ls_valid || !ts_ready; 
 reg ts_valid_r,ts_ready_r;
 always_ff @(posedge clk)begin
-    if (rst)begin
+    if (rst || flush)begin
         ts_valid_r <= 0;
-        ts_ready_r <= 1;
-    end else begin
-        ts_valid_r <= !stall & ls_valid;
-        ts_ready_r <= !stall & ns_ready;
+    end else if(ts_ready)begin
+        ts_valid_r <= ls_valid;
     end
 end
-assign ts_valid = ts_valid_r;
-assign ts_ready = ts_ready_r;
+assign ts_valid = !stall && ts_valid_r;
+
+assign ts_ready = !ts_valid_r || (ns_ready && !stall);
 
 always_ff @(posedge clk)
 begin
-    if(rst==`RST_VALID)
+    if(rst || flush)
     begin
         //wb_info
         wb_info.pc          <=`ADDR_INVALID;
@@ -57,6 +57,11 @@ begin
         wb_csr_info.rw_en   <= wb_csr_info.rw_en;
         wb_csr_info.rw_addr <= wb_csr_info.rw_addr;
         wb_csr_info.rw_data <= wb_csr_info.rw_data;
+        lsu_info_out.ld_paddr <= lsu_info_out.ld_paddr;
+        lsu_info_out.ld_valid <= lsu_info_out.ld_valid;
+        lsu_info_out.st_valid <= lsu_info_out.st_valid;
+        lsu_info_out.st_paddr <= lsu_info_out.st_paddr;
+        lsu_info_out.st_data <= lsu_info_out.st_data;
     end 
     else
     begin
@@ -70,6 +75,11 @@ begin
         wb_csr_info.rw_en   <= mem_csr_info.rw_en;
         wb_csr_info.rw_addr <= mem_csr_info.rw_addr;
         wb_csr_info.rw_data <= mem_csr_info.rw_data;
+        lsu_info_out.ld_paddr <= lsu_info.ld_paddr;
+        lsu_info_out.ld_valid <= lsu_info.ld_valid;
+        lsu_info_out.st_valid <= lsu_info.st_valid;
+        lsu_info_out.st_paddr <= lsu_info.st_paddr;
+        lsu_info_out.st_data <= lsu_info.st_data;
     end
 end
 endmodule:MEM_WB
