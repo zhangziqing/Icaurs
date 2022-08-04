@@ -18,3 +18,7 @@
 `define LSU_OP_NUM 16
 
 `define CSR_OP_WIDTH 3
+
+
+//CSR Reg
+`define CSR_REG_WIDTH 14

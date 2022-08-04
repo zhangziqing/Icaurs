@@ -35,7 +35,24 @@ module InstDecode(
     branch_info_if.o                branch_info, 
 
     //branch info
-    output predict_miss
+    output predict_miss,
+
+    //csr
+    //1.data relate
+    csrData_pushForwward.i ex_csr_info,
+    csrData_pushForwward.i mem_csr_info,
+    //2.csr reg data
+    input  logic [`DATA_WIDTH-1:0]    csr_reg_data,
+    output logic [`CSR_REG_WIDTH-1:0] csr_reg_addr,
+    //3.output csr info
+    csrData_pushForwward.o id_csr_info,
+
+    //except
+    except_info.o id_except_info,
+
+    //time 64 from csr
+    input [63:0] timer_64,
+    input [31:0] csr_tid
 );
     wire [`ADDR_WIDTH - 1 : 0 ]pc = if_info.pc;
     //generate the oprands
@@ -62,15 +79,32 @@ module InstDecode(
     assign si20_ext={si20,12'b0};
 
 
-    //oprand type
-    wire [13:0] csr_code;
-    assign csr_code = inst[23:10];
+    //except
+    wire except_type_break,except_type_syscall,inst_invaild;
+    assign except_type_break=~|(inst[31:15]^`BREAK);
+    assign except_type_syscall=~|(inst[31:15]^`SYSCALL);
+    assign id_except_info.except_pc=if_info.pc;
+    assign id_except_info.except_type={16'b0,except_type_break,except_type_syscall,inst_invaild,13'b0};
 
     //operation inst
-    wire is_3r,is_ui5,is_si12;
-    assign is_3r = (~|(inst[31:22]^10'b0000000000)) && (inst[21]||inst[20]);
+    wire is_3r,is_ui5,is_si12,is_csr,is_rdcnt;
+    assign is_3r = (~|(inst[31:22]^10'b0000000000)) && (inst[21]||inst[20]) && (!except_type_break) && (!except_type_syscall);
     assign is_ui5 = (~|(inst[31:20]^12'b000000000100)) && (~|(inst[17:15]^3'b001));
     assign is_si12 = ~|(inst[31:25]^7'b0000001);
+    assign is_csr = ~|(inst[31:24]^8'b00000100);
+    assign is_rdcnt=~|(inst[31:11]^21'b000000000000000001100);
+
+    //rdcnt
+    wire is_rdcntid,is_rdcntvl,is_rdcntvh;
+    assign is_rdcntid=is_rdcnt&&(inst[10]==1'b0)&&(inst[4:0]==5'b00000);
+    assign is_rdcntvl=is_rdcnt&&(inst[10]==1'b0)&&(inst[9:5]==5'b00000);
+    assign is_rdcntvh=is_rdcnt&&(inst[10]==1'b1)&&(inst[9:5]==5'b00000);
+
+    //csr inst
+    wire is_csrrd,is_csrwr,is_csrxchg;
+    assign is_csrrd = is_csr&&(~|(inst[9:5]^5'b00000));
+    assign is_csrwr = is_csr&&(~|(inst[9:5]^5'b00001));
+    assign is_csrxchg = is_csr&&(!is_csrrd)&&(!is_csrwr);
 
     wire is_si20,is_lu12i,is_pcaddu12i;
     assign is_si20=~|(inst[31:28]^4'b0001);
@@ -130,7 +164,7 @@ module InstDecode(
         endcase
     end
 
-    /**
+    /*
     *   register:0
     *   I12:1
     *   I20:2
@@ -192,9 +226,6 @@ module InstDecode(
 
     //control signal
     //1.branch_info
-
-    
-
     wire bran_flag = branch_en || jump_en;
     wire dir_pred_miss = bran_flag != if_info.branch;
     wire target_pred_miss = bran_flag & ~|(branch_info.branch_addr ^ if_info.branch_addr);
@@ -210,6 +241,7 @@ module InstDecode(
     assign id_info.pc=pc;
     assign id_info.lsu_op=is_load_store?inst[25:22]:4'b1111;
     assign id_info.lsu_data=r2_data;
+    assign id_info.csr_op={is_csrrd,is_csrwr,is_csrxchg};
 
     logic [`DATA_WIDTH - 1 : 0 ] oprand1;
     logic [`DATA_WIDTH - 1 : 0 ] oprand2;
@@ -253,7 +285,29 @@ module InstDecode(
             r2_en=0;
             r2_addr=5'b0;
         end
-        else begin
+        else if(is_csr)
+        begin
+            r1_en=is_csrxchg;
+            r1_addr=rj_addr;
+            r2_en=1;
+            r2_addr=rd_addr;
+        end
+        else if(except_type_break||except_type_syscall)
+        begin
+            r1_en=0;
+            r1_addr=5'b0;
+            r2_en=0;
+            r2_addr=5'b0;
+        end
+        else if(is_rdcnt)
+        begin
+            r1_en=0;
+            r1_addr=5'b0;
+            r2_en=0;
+            r2_addr=5'b0;
+        end
+        else 
+        begin
             r1_en=0;
             r1_addr=5'b0;
             r2_en=0;
@@ -269,6 +323,7 @@ module InstDecode(
             id_info.ex_op=alu_op;
             id_info.rw_en=1;
             id_info.rw_addr=rd_addr;
+            inst_invaild=0;
         end
         else if(is_branch)
         begin
@@ -277,6 +332,7 @@ module InstDecode(
             id_info.ex_op = `ALU_XOR;
             id_info.rw_en = 0;
             id_info.rw_addr = 0;
+            inst_invaild=0;
         end
         else if(is_jump)
         begin
@@ -284,6 +340,7 @@ module InstDecode(
             oprand2=32'b100;
             id_info.ex_op=`ALU_ADD;
             id_info.rw_en=is_bl||is_jirl;
+            inst_invaild=1;
             id_info.rw_addr=is_bl?5'b1:rd_addr;
         end
         else if(is_load_store)
@@ -293,6 +350,7 @@ module InstDecode(
             id_info.ex_op=`ALU_ADD;
             id_info.rw_en=is_load;
             id_info.rw_addr=rd_addr;
+            inst_invaild=0;
         end
         else if(is_si20)
         begin
@@ -301,13 +359,88 @@ module InstDecode(
             id_info.ex_op=`ALU_ADD;
             id_info.rw_en=1;
             id_info.rw_addr=rd_addr;
+            inst_invaild=0;
         end
-        else begin
+        else if(is_csr)
+        begin
+            oprand1=id_csr_info.rw_data;
+            oprand2=0;
+            id_info.ex_op=`ALU_OR;
+            id_info.rw_en=1;
+            id_info.rw_addr=rd_addr;
+            inst_invaild=0;
+        end
+        else if(except_type_break||except_type_syscall)
+        begin
             oprand1 = 0;
             oprand2 = 0;
             id_info.rw_en = 0;
             id_info.ex_op = `ALU_INVALID;
             id_info.rw_addr=rd_addr;
+            inst_invaild=0;
+        end
+        else if(is_rdcnt)
+        begin
+            oprand1 = is_rdcntid?csr_tid:(is_rdcntvh?timer_64[63:32]:timer_64[31:0]);
+            oprand2 = 0;
+            id_info.rw_en = 1;
+            id_info.ex_op = `ALU_OR;
+            id_info.rw_addr=is_rdcntid?rj_addr:rd_addr;
+            inst_invaild=0;
+        end
+        else 
+        begin
+            oprand1 = 0;
+            oprand2 = 0;
+            id_info.rw_en = 0;
+            id_info.ex_op = `ALU_INVALID;
+            id_info.rw_addr=rd_addr;
+            inst_invaild=1;
         end
     end
+
+    //csr
+    logic [`DATA_WIDTH-1:0] csr_read_result;
+    assign csr_reg_addr=inst[23:10];
+    //1.write csr reg data
+    always @(*)
+    begin
+        if(is_csrrd)//csrrd
+        begin
+            id_csr_info.rw_en=0;
+            id_csr_info.rw_addr=14'b0;
+            id_csr_info.rw_data=32'b0;
+        end
+        else if(is_csrwr)//csrwr
+        begin
+            id_csr_info.rw_en=1;
+            id_csr_info.rw_addr=csr_reg_addr;
+            id_csr_info.rw_data=r2_data;
+        end
+        else if(is_csrxchg)//csrxchg
+        begin
+            id_csr_info.rw_en=1;
+            id_csr_info.rw_addr=csr_reg_addr;
+            id_csr_info.rw_data=(r2_data&r1_data)|(csr_read_result&~r1_data);
+        end
+        else
+        begin
+            id_csr_info.rw_en=0;
+            id_csr_info.rw_addr=14'b0;
+            id_csr_info.rw_data=32'b0;
+        end
+    end
+    //2.read csr reg data
+    always @(*)
+    begin
+        //data is related to ex
+        if(ex_csr_info.rw_en==1&&ex_csr_info.rw_addr==csr_reg_addr)
+            csr_read_result=ex_csr_info.rw_data;
+        //data is related to mem
+        else if(mem_csr_info.rw_en==1&&mem_csr_info.rw_addr==csr_reg_addr)
+            csr_read_result=mem_csr_info.rw_data;
+        else 
+            csr_read_result=csr_reg_data;
+    end
+
 endmodule

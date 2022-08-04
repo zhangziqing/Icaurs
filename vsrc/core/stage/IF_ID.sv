@@ -49,5 +49,4 @@ begin
         id_info.branch  <= if_info.branch ;
     end
 end
-
 endmodule:IF_ID

@@ -4,11 +4,24 @@
 module Execute(
     //stage info
     id_stage_if.i id_info,
-    ex_stage_if.o ex_info
+    ex_stage_if.o ex_info,
+    //csr info
+    csrData_pushForwward.i id_csr_info,
+    csrData_pushForwward.o ex_csr_info,
+    //except info
+    except_info.i id_except_info,
+    except_info.o ex_except_info
 );
+    //except 
+    assign ex_except_info.except_type  = id_except_info.except_type;
+    assign ex_except_info.except_pc    = id_except_info.except_pc;
+    //csr
+    assign ex_csr_info.rw_en=id_csr_info.rw_en;
+    assign ex_csr_info.rw_addr=id_csr_info.rw_addr;
+    assign ex_csr_info.rw_data=id_csr_info.rw_data;
 
-    logic [`ALU_OP_WIDTH - 1 : 0] alu_op=id_info.ex_op;//TODO
-    logic [`DATA_WIDTH - 1 : 0 ]alu_res;
+    logic [`ALU_OP_WIDTH - 1 : 0] alu_op=id_info.ex_op;
+    logic [`DATA_WIDTH - 1 : 0 ] alu_res;
     ALU alu_0 (
         .op(alu_op),
         .oprand1(id_info.oprand1),
@@ -25,14 +38,13 @@ module Execute(
         // .valid()
     );
     assign ex_info.inst = id_info.inst;
-    assign ex_info.inst = id_info.pc;
+    assign ex_info.pc = id_info.pc;
     assign ex_info.lsu_data = id_info.lsu_data;
     assign ex_info.lsu_op = id_info.lsu_op;
     assign ex_info.rw_en = id_info.rw_en;
     assign ex_info.rw_addr = id_info.rw_addr;
     assign ex_info.ex_result = alu_op[5] ? mdu_res : alu_res;
-    assign ex_info.pc = id_info.pc;
-    assign ex_info.inst = id_info.pc;
+
 endmodule
 
 module ALU(
