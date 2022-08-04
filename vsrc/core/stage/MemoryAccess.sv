@@ -1,9 +1,11 @@
 `include "width_param.sv"
 
 module MemoryAccess(
+    input     stall,
     sram_if.m sram_io,
     mem_stage_if.o mem_info,
-    ex_stage_if.i ex_info
+    ex_stage_if.i ex_info,
+    lsu_info_if.o lsu_info
 );
 
 
@@ -22,7 +24,7 @@ module MemoryAccess(
     //TODO:  
 //     assign mem_info.rw_data = 0;
     // always_comb dpi_pmem_read(mem_read_result_aligned,mem_addr,mem_read_en);
-    assign sram_io.sram_rd_en = mem_read_en;
+    assign sram_io.sram_rd_en = mem_read_en & ~stall;
     assign sram_io.sram_rd_addr = mem_addr;
     assign mem_read_result_aligned = sram_io.sram_rd_data;
 
@@ -33,19 +35,8 @@ module MemoryAccess(
     assign sram_io.sram_wr_en   = mem_wr_en;
     assign sram_io.sram_wr_addr = mem_addr;
     assign sram_io.sram_wr_data = mem_wr_data;
-    assign sram_io.sram_wr_mask    = mem_wr_mask;
-    always_comb begin:shift
-       case(ex_info.ex_result[1:0])
-        2'b00:
-            mem_read_result = mem_read_result_aligned;
-        2'b01:
-            mem_read_result = {8'b0,mem_read_result_aligned[31:8]};
-        2'b10:
-            mem_read_result = {16'b0,mem_read_result_aligned[31:16]};
-        2'b11:
-            mem_read_result = {24'b0,mem_read_result_aligned[31:24]};
-       endcase
-    end:shift
+    assign sram_io.sram_wr_mask = mem_wr_mask;
+
     always_comb begin
         case (ex_info.lsu_op)
             4'b0100:begin  //ST.B
@@ -127,28 +118,29 @@ module MemoryAccess(
             end
         endcase
     end
-    always_comb begin
-        case (ex_info.lsu_op)
-            4'b0010:begin  //LD.W
-                mem_info.rw_data = mem_read_result;
-            end
-            4'b0000:begin //LD.B
-                mem_info.rw_data={{24{mem_info.rw_data[7]}},mem_read_result[7:0]};
-            end
-            4'b0001:begin//LD.H
-                mem_info.rw_data={{16{mem_info.rw_data[15]}},mem_read_result[15:0]};
-            end
-            4'b1000:begin//LD.BU
-                mem_info.rw_data={{24{1'b0}},mem_read_result[7:0]};
-            end
-            4'b1001:begin//LD.HU
-                mem_info.rw_data={{16{1'b0}},mem_read_result[15:0]};
-            end
-            default:begin
-                mem_info.rw_data = ex_info.ex_result;
-            end
-        endcase
-    end
+    assign mem_info.rw_data = ex_info.ex_result;
     assign mem_info.ram_rd_en = mem_read_en;
 
+    wire ld_w = 4'b0010 == ex_info.lsu_op;
+    wire ld_b = 4'b0000 == ex_info.lsu_op;
+    wire ld_h = 4'b0001 == ex_info.lsu_op;
+    wire ld_bu = 4'b1000 == ex_info.lsu_op;
+    wire ld_hu = 4'b1001 == ex_info.lsu_op;
+    assign lsu_info.ld_valid =  {2'b0,1'b0, ld_w, ld_hu, ld_h, ld_bu, ld_b};
+
+    wire st_b = 4'b0100 == ex_info.lsu_op;
+    wire st_h = 4'b0101 == ex_info.lsu_op;
+    wire st_w = 4'b0110 == ex_info.lsu_op;
+    assign lsu_info.st_valid = {4'b0, 1'b0, st_w, st_h, st_b};
+
+    assign lsu_info.ld_paddr = ex_info.ex_result;
+    assign lsu_info.st_paddr = ex_info.ex_result;
+    wire [`DATA_WIDTH - 1: 0]mask;
+    genvar i;
+    generate
+    for (i = 0; i < 4; i = i + 1)begin
+        assign mask[i*8+7:i*8] = mem_wr_mask[i] ? 8'b1111_1111 : 0;
+    end
+    endgenerate
+    assign lsu_info.st_data = mem_wr_data & mask;
 endmodule:MemoryAccess

@@ -1,36 +1,3 @@
-//=============================================================================
-//
-//Module Name:					AXI_Slave_Mux_R.sv
-//Department:					Xidian University
-//Function Description:	        AXI总线读通道从机用多路复用器
-//
-//------------------------------------------------------------------------------
-//
-//Version 	Design		Coding		Simulata	  Review		Rel data
-//V1.0		Verdvana	Verdvana	Verdvana		  			2020-3-13
-//V1.1		Verdvana	Verdvana	Verdvana		  			2020-3-16
-//V1.2		Verdvana	Verdvana	Verdvana		  			2020-3-18
-//
-//------------------------------------------------------------------------------
-//
-//Version	Modified History
-//V1.0		4个AXI4总线主设备接口；
-//          8个AXI4总线从设备接口；
-//          从设备地址隐藏与读写地址的高三位；
-//          主设备仲裁优先级随上一次总线所有者向后顺延；
-//          Cyclone IV EP4CE30F29C8上综合后最高时钟频率可达80MHz+。
-//
-//V1.1      优化电路结构，状态机判断主设备握手请求信号后直接输出到对应从设备，省去一层MUX；
-//          数据、地址、ID、USER位宽可设置;
-//          时序不变，综合后最高时钟频率提高至100MHz+。	
-//
-//V1.2      进一步优化电路结构，精简状态机的状态；
-//          时序不变，综合后最高时钟频率提高至400MHz。
-//
-//=============================================================================
-
-`timescale 1ns/1ns
-
 module AXI_Slave_Mux_R#(
     parameter   DATA_WIDTH  = 32,
                 ADDR_WIDTH  = 32,

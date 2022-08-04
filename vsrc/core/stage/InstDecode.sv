@@ -13,6 +13,7 @@
 
 module InstDecode(
     input [`INST_WIDTH - 1 : 0]     inst,
+    input inst_valid,
     //register interface
 
     /*
@@ -164,17 +165,24 @@ module InstDecode(
     assign branch_addr=pc+{{14{inst[25]}},inst[25:10],2'b00};
     assign jump_addr=(is_b||is_bl)?pc+{{4{inst[9]}},{inst[9:0], inst[25:10]},2'b0}:branch_oprand1+{{14{inst[25]}},inst[25:10],2'b00};
     assign jump_en=is_jump;
+
+    wire [`DATA_WIDTH - 1: 0] branch_sub;
+    wire branch_cout; 
+    assign {branch_cout, branch_sub } = branch_oprand1 + ~branch_oprand2 + 1;
+    wire branch_lt = (branch_oprand1[`DATA_WIDTH - 1] & ~branch_oprand2[`DATA_WIDTH - 1]) |
+            |(~(branch_oprand1[`DATA_WIDTH - 1] ^ branch_oprand2[`DATA_WIDTH - 1]) & branch_sub[`DATA_WIDTH - 1]);
+    wire branch_ltu = branch_oprand1 < branch_oprand2;
     always @(*)
     begin
         if(is_branch)
         begin
             case(inst[29:26])
-            `BEQ: if(branch_oprand1==branch_oprand2) branch_en=1; else branch_en=0;
-            `BNE: if(branch_oprand1!=branch_oprand2) branch_en=1; else branch_en=0;
-            `BLT: if(branch_oprand1< branch_oprand2) branch_en=1; else branch_en=0;
-            `BGE: if(branch_oprand1>=branch_oprand2) branch_en=1; else branch_en=0;
-            `BLTU:if($unsigned(branch_oprand1)<$unsigned(branch_oprand2)) branch_en=1; else branch_en=0;
-            `BGEU:if($unsigned(branch_oprand1)>=$unsigned(branch_oprand2)) branch_en=1; else branch_en=0;
+            `BEQ: branch_en = ~|branch_sub;
+            `BNE: branch_en = |branch_sub;
+            `BLT: branch_en = branch_lt;
+            `BGE: branch_en = ~branch_lt;
+            `BLTU:branch_en = branch_ltu;
+            `BGEU:branch_en = ~branch_ltu;
             default:branch_en=0;
             endcase
         end
@@ -190,7 +198,7 @@ module InstDecode(
     wire bran_flag = branch_en || jump_en;
     wire dir_pred_miss = bran_flag != if_info.branch;
     wire target_pred_miss = bran_flag & ~|(branch_info.branch_addr ^ if_info.branch_addr);
-    assign predict_miss = dir_pred_miss | target_pred_miss;
+    assign predict_miss = (dir_pred_miss | target_pred_miss) & inst_valid;
 
     assign branch_info.taken = bran_flag;
     assign branch_info.branch_addr = jump_en ? jump_addr : branch_addr;
@@ -272,11 +280,11 @@ module InstDecode(
         end
         else if(is_jump)
         begin
-            oprand1=(is_bl||is_jirl)?pc:32'b0;
-            oprand2=(is_bl||is_jirl)?32'b100:32'b0;
-            id_info.ex_op=(is_bl||is_jirl)?`ALU_ADD:`ALU_INVALID;
+            oprand1=pc;
+            oprand2=32'b100;
+            id_info.ex_op=`ALU_ADD;
             id_info.rw_en=is_bl||is_jirl;
-            id_info.rw_addr=is_bl?5'b1:(is_jirl?rd_addr:5'b0);
+            id_info.rw_addr=is_bl?5'b1:rd_addr;
         end
         else if(is_load_store)
         begin

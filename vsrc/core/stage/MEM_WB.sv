@@ -10,8 +10,10 @@ module MEM_WB(
     input flush,
     //mem output
     mem_stage_if.i mem_info,
+    lsu_info_if.i lsu_info,
     //regfile input
-    mem_stage_if.o wb_info
+    mem_stage_if.o wb_info,
+    lsu_info_if.o lsu_info_out,
 );
 
 wire stall_stage = !ls_valid || !ts_ready; 
@@ -46,6 +48,11 @@ begin
         wb_info.rw_data <= wb_info.rw_data;
         wb_info.rw_addr <= wb_info.rw_addr;
         wb_info.rw_en <= wb_info.rw_en;
+        lsu_info_out.ld_paddr <= lsu_info_out.ld_paddr;
+        lsu_info_out.ld_valid <= lsu_info_out.ld_valid;
+        lsu_info_out.st_valid <= lsu_info_out.st_valid;
+        lsu_info_out.st_paddr <= lsu_info_out.st_paddr;
+        lsu_info_out.st_data <= lsu_info_out.st_data;
     end 
     else
     begin
@@ -56,6 +63,11 @@ begin
         wb_info.rw_data<=mem_info.rw_data;
         wb_info.rw_addr<=mem_info.rw_addr;
         wb_info.rw_en<=mem_info.rw_en;
+        lsu_info_out.ld_paddr <= lsu_info.ld_paddr;
+        lsu_info_out.ld_valid <= lsu_info.ld_valid;
+        lsu_info_out.st_valid <= lsu_info.st_valid;
+        lsu_info_out.st_paddr <= lsu_info.st_paddr;
+        lsu_info_out.st_data <= lsu_info.st_data;
     end
 end
 endmodule:MEM_WB

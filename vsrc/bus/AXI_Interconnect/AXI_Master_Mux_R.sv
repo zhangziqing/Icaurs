@@ -1,47 +1,10 @@
-//=============================================================================
-//
-//Module Name:					AXI_Master_Mux_R.sv
-//Department:					Xidian University
-//Function Description:	        AXI总线读通道主控用多路复用器
-//
-//------------------------------------------------------------------------------
-//
-//Version 	Design		Coding		Simulata	  Review		Rel data
-//V1.0		Verdvana	Verdvana	Verdvana		  			2020-3-13
-//V1.1		Verdvana	Verdvana	Verdvana		  			2020-3-16
-//V1.2		Verdvana	Verdvana	Verdvana		  			2020-3-18
-//
-//------------------------------------------------------------------------------
-//
-//Version	Modified History
-//V1.0		4个AXI4总线主设备接口；
-//          8个AXI4总线从设备接口；
-//          从设备地址隐藏与读写地址的高三位；
-//          主设备仲裁优先级随上一次总线所有者向后顺延；
-//          Cyclone IV EP4CE30F29C8上综合后最高时钟频率可达80MHz+。
-//
-//V1.1      优化电路结构，状态机判断主设备握手请求信号后直接输出到对应从设备，省去一层MUX；
-//          数据、地址、ID、USER位宽可设置;
-//          时序不变，综合后最高时钟频率提高至100MHz+。	
-//
-//V1.2      进一步优化电路结构，精简状态机的状态；
-//          时序不变，综合后最高时钟频率提高至400MHz。
-//
-//=============================================================================
-
-`timescale 1ns/1ns
-
 module AXI_Master_Mux_R#(
-    parameter   DATA_WIDTH  = 32,
-                ADDR_WIDTH  = 32,
+    parameter   ADDR_WIDTH  = 32,
                 ID_WIDTH    = 1,
                 USER_WIDTH  = 1
 )(
-	/********* 时钟&复位 *********/
 	input                       ACLK,
 	input      	                ARESETn,
-    /********** 0号主控 **********/
-    //读地址通道
     input      [ID_WIDTH-1:0]   m0_ARID,
     input      [ADDR_WIDTH-1:0] m0_ARADDR,
     input      [7:0]            m0_ARLEN,
@@ -55,11 +18,8 @@ module AXI_Master_Mux_R#(
     input      [USER_WIDTH-1:0] m0_ARUSER,
     input                       m0_ARVALID,
     output reg                  m0_ARREADY,
-    //读数据通道
     output reg                  m0_RVALID,
     input                       m0_RREADY,
-    /********** 1号主控 **********/
-    //读地址通道
     input      [ID_WIDTH-1:0]   m1_ARID,
     input      [ADDR_WIDTH-1:0] m1_ARADDR,
     input      [7:0]            m1_ARLEN,
@@ -73,12 +33,8 @@ module AXI_Master_Mux_R#(
     input      [USER_WIDTH-1:0] m1_ARUSER,
     input                       m1_ARVALID,
     output reg                  m1_ARREADY,
-    //读数据通道
     output reg                  m1_RVALID,
     input                       m1_RREADY,
-
-    /******** 从机通用信号 ********/
-    //读地址通道
     output reg [ID_WIDTH-1:0]   s_ARID,
     output reg [ADDR_WIDTH-1:0] s_ARADDR,
     output reg [7:0]            s_ARLEN,
@@ -91,21 +47,12 @@ module AXI_Master_Mux_R#(
     output reg [3:0]            s_ARREGION,
     output reg [USER_WIDTH-1:0] s_ARUSER,
     output reg                  s_ARVALID,
-    //读数据通道
     output reg                  s_RREADY,
-    /******** 主机通用信号 ********/
     input                       m_ARREADY,
     input                       m_RVALID,
-    /******** 片选使能信号 ********/
     input                       m0_rgrnt,
 	input                       m1_rgrnt
 );
-
-    //=========================================================
-    //读取通路的多路复用主控信号
-
-    //---------------------------------------------------------
-    //其他信号复用
     always_comb begin
         case({m0_rgrnt,m1_rgrnt})
             2'b10: begin

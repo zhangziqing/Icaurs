@@ -24,6 +24,7 @@ parameter STATE_WRESP = 3'b011;
 
 logic [2:0] write_state;
 
+wire hazard = (~|(axi4_master.AWADDR ^ axi4_master.ARADDR)) & data_sram_slave.sram_wr_busy;
 always_ff @(posedge axi4_master.ACLK) begin
     if (!axi4_master.ARESETn) begin
         write_state <= STATE_IDLE_W;
@@ -73,6 +74,7 @@ assign axi4_master.WLAST  = axi4_master.WVALID;
 parameter STATE_IDLE_R = 3'b100;
 parameter STATE_RADDR = 3'b101;
 parameter STATE_RDATA = 3'b110;
+parameter STATE_RWAIT = 3'b111;
 
 logic [2:0]read_state;
 
@@ -95,7 +97,7 @@ always_ff @(posedge axi4_master.ACLK)begin
             STATE_IDLE_R:begin
                 data_sram_slave.sram_rd_valid <= 0;
                 if(data_sram_slave.sram_rd_en)begin
-                    read_state <= STATE_RADDR;
+                    read_state <= hazard ? STATE_RWAIT : STATE_RADDR;
                     axi4_master.ARADDR <= data_sram_slave.sram_rd_addr;
                 end
                 else
@@ -116,6 +118,10 @@ always_ff @(posedge axi4_master.ACLK)begin
                     end
                 else
                     read_state <= STATE_RDATA;
+            end
+            STATE_RWAIT:begin
+                if(!hazard)
+                    read_state <= STATE_RADDR;
             end
             default: read_state <= STATE_IDLE_R;
         endcase

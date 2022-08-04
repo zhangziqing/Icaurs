@@ -64,8 +64,8 @@ module ALU(
             `ALU_SLL  : result = oprand1 << oprand2[4:0];//sll.w
             `ALU_SRL  : result = oprand1 >> oprand2[4:0];//srl.w
             `ALU_SRA  : result = temp_oper >>> oprand2[4:0];//sra.w
-            `ALU_SLT  : result = {31'b0, slt};//slt
-            `ALU_SLTU : result = {31'b0, sltu};//sltu
+            `ALU_SLT  : result = {30'b0, slt};//slt
+            `ALU_SLTU : result = {30'b0, sltu};//sltu
             default: result = 0;
         endcase
     end

@@ -41,6 +41,7 @@ module Core(
         .branch(predict_branch),
         .predict_pc(predict_pc),
         .stall(if_stall),
+        .ready(if_ready),
         .pc(pc),
         .valid(if_valid),
         .ns_ready(id_ready),
@@ -57,7 +58,7 @@ module Core(
     wire [`INST_WIDTH - 1 : 0] inst;
 
     // always_comb dpi_pmem_fetch(inst_if, pc, !reset);
-    assign iram.sram_rd_en = if_valid;
+    assign iram.sram_rd_en = if_valid & if_ready;
     assign iram.sram_rd_addr = pc;
     assign inst = iram.sram_rd_data;
     assign iram.sram_cancel_rd = 0;
@@ -70,7 +71,19 @@ module Core(
     
     logic [`ADDR_WIDTH - 1 : 0] id_pc; 
     logic load_flag1,load_flag2;
-    assign id_stall = !iram_data_valid;
+    logic bypass_valid1,bypass_valid2;
+    logic inst_valid_sm;
+    
+    always @(posedge clock)begin
+        if (reset)
+            inst_valid_sm <= 0;
+        else if (reset || if_flush || (if_valid && id_ready))
+            inst_valid_sm <= 0;
+        else if(iram_data_valid)
+            inst_valid_sm <= 1;
+    end
+    wire inst_valid = inst_valid_sm ? inst_valid_sm : iram_data_valid;
+    assign id_stall = (~inst_valid) | load_flag1 | load_flag2;
     IF_ID if_id(
         .rst(reset),
         .clk(clock),
@@ -95,6 +108,7 @@ module Core(
 
     InstDecode idu_0(
         .inst(inst),
+        .inst_valid(inst_valid),
 
         .r1_en(r1_en),
         .r1_addr(r1_addr),
@@ -118,21 +132,28 @@ module Core(
         .ex_rw_addr(ex_info.rw_addr),
         .ex_rw_en(ex_info.rw_en),
         .ex_rw_data(ex_info.ex_result),
+        .ex_data_valid(ex_valid),
+        .ex_stall(ex_stall),
 
         .mem_rw_addr(mem_info.rw_addr),
         .mem_rw_en(mem_info.rw_en),
         .mem_rw_data(mem_info.rw_data),
+        .mem_data_valid(mem_valid),
+        .mem_stall(mem_stall),
 
-        .wb_rw_addr(wb_info.rw_addr),
-        .wb_rw_en(wb_info.rw_en),
-        .wb_rw_data(wb_info.rw_data),
+        .wb_rw_addr(rw_addr),
+        .wb_rw_en(rw_en),
+        .wb_rw_data(rw_data),
+        .wb_data_valid(wb_valid),
+        .wb_stall(wb_stall),
 
         .reg_en(r1_rf_en),
         .reg_addr(r1_rf_addr),
         .reg_data(r1_rf_data),
 
-        .lsu_op(ex_info.lsu_op),
-        .load_flag(load_flag1)
+        .ex_lsu_op(ex_info.lsu_op),
+        .mem_ram_rd_en(mem_info.ram_rd_en),
+        .hazard_flag(load_flag1)
     );
 
     RegFileBypass reg2_bypass(
@@ -143,24 +164,28 @@ module Core(
         .ex_rw_addr(ex_info.rw_addr),
         .ex_rw_en(ex_info.rw_en),
         .ex_rw_data(ex_info.ex_result),
+        .ex_data_valid(1),
 
         .mem_rw_addr(mem_info.rw_addr),
         .mem_rw_en(mem_info.rw_en),
         .mem_rw_data(mem_info.rw_data),
+        .mem_data_valid(1),
 
-        .wb_rw_addr(wb_info.rw_addr),
-        .wb_rw_en(wb_info.rw_en),
-        .wb_rw_data(wb_info.rw_data),
+        .wb_rw_addr(rd_en),
+        .wb_rw_en(rd_addr),
+        .wb_rw_data(rd_data),
+        .wb_data_valid(wb_valid),
 
         .reg_en(r2_rf_en),
         .reg_addr(r2_rf_addr),
         .reg_data(r2_rf_data),
         
-        .lsu_op(ex_info.lsu_op),
-        .load_flag(load_flag2)
+        .ex_lsu_op(ex_info.lsu_op),
+        .mem_ram_rd_en(mem_info.ram_rd_en),
+        .hazard_flag(load_flag2)
     );
 
-    assign ex_stall = load_flag1 | load_flag2;
+    assign ex_stall = 0;
     id_stage_if id_info_ex; 
     ID_EX id_ex(
         .rst(reset),
@@ -182,7 +207,8 @@ module Core(
     );
 
     ex_stage_if ex_info_mem;
-    assign mem_stall = dram.sram_wr_en & dram.sram_wr_busy;
+    logic exmem_stall;
+    assign mem_stall = dram.sram_wr_en& dram.sram_wr_busy;
     EX_MEM ex_mem(
         .rst(reset),
         .clk(clock),
@@ -197,10 +223,14 @@ module Core(
     );
 
     mem_stage_if mem_info;
+    lsu_info_if lsu_info_mem,lsu_info_wb;
+    logic mem_wb_stall;
     MemoryAccess mem_0(
+        .stall(exmem_stall),
         .ex_info(ex_info_mem),
         .mem_info(mem_info),
-        .sram_io(dram)
+        .sram_io(dram),
+        .lsu_info(lsu_info_mem)
     );
     assign wb_stall = wb_info.ram_rd_en && !dram.sram_rd_valid;
     mem_stage_if wb_info;
@@ -214,7 +244,9 @@ module Core(
         .ls_valid(mem_valid),
         .ns_ready(1),
         .mem_info(mem_info),
-        .wb_info(wb_info)
+        .wb_info(wb_info),
+        .lsu_info(lsu_info_mem),
+        .lsu_info_out(lsu_info_wb)
     );
 
     WriteBack wb_0(
@@ -222,7 +254,12 @@ module Core(
         .ram_rd_data(dram.sram_rd_data),
         .rw_en(rw_en),
         .rw_addr(rw_addr),
-        .rw_data(rw_data)
+        .rw_data(rw_data),
+        .lsu_info(lsu_info_wb),
+        .debug0_wb_rf_wdata(debug0_wb_rf_wdata),
+        .debug0_wb_rf_wnum(debug0_wb_rf_wnum),
+        .debug0_wb_rf_wen(debug0_wb_rf_wen),
+        .debug0_wb_pc(debug0_wb_pc)
     );
 
     RegFile reg_0 (
@@ -248,8 +285,6 @@ module Core(
         .flush(glo_flush),
         .flush_pc(flush_pc)
     );
-
-
 
     // always_ff@(clock)
     //     trap(inst,reg_0.reg_file[4]);

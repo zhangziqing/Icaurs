@@ -339,10 +339,17 @@ DifftestTrapEvent DifftestTrapEvent(
     .instrCnt           (instrCnt       )
 );
 
-wire [`DATA_WIDTH - 1 : 0] cmt_inst_st_en = 0;
-wire [`DATA_WIDTH - 1 : 0] cmt_st_paddr = 0;
-wire [`DATA_WIDTH - 1 : 0] cmt_st_vaddr = 0;
-wire [`DATA_WIDTH - 1 : 0] cmt_st_data  = 0;
+reg [`DATA_WIDTH - 1 : 0] cmt_inst_st_en;
+reg [`DATA_WIDTH - 1 : 0] cmt_st_paddr;
+reg [`DATA_WIDTH - 1 : 0] cmt_st_vaddr;
+reg [`DATA_WIDTH - 1 : 0] cmt_st_data;
+
+always_ff @(posedge aclk)begin
+    cmt_inst_st_en = core_inst.lsu_info_wb.st_valid;
+    cmt_st_paddr   = core_inst.lsu_info_wb.st_paddr;
+    cmt_st_vaddr   = core_inst.lsu_info_wb.st_paddr;
+    cmt_st_data    = core_inst.lsu_info_wb.st_data;
+end 
 
 DifftestStoreEvent DifftestStoreEvent(
     .clock              (aclk           ),
@@ -354,9 +361,15 @@ DifftestStoreEvent DifftestStoreEvent(
     .storeData          (cmt_st_data    )
 );
 
-wire [`DATA_WIDTH - 1 : 0] cmt_inst_ld_en = 0;
-wire [`DATA_WIDTH - 1 : 0] cmt_ld_paddr = 0;
-wire [`DATA_WIDTH - 1 : 0] cmt_ld_vaddr = 0;
+reg [7 : 0] cmt_inst_ld_en;
+reg [`DATA_WIDTH - 1 : 0] cmt_ld_paddr;
+reg [`DATA_WIDTH - 1 : 0] cmt_ld_vaddr;
+always_ff @(posedge aclk)begin
+    cmt_inst_ld_en = core_inst.lsu_info_wb.ld_valid;
+    cmt_ld_paddr   = core_inst.lsu_info_wb.ld_paddr;
+    cmt_ld_vaddr   = core_inst.lsu_info_wb.ld_paddr;
+end 
+
 DifftestLoadEvent DifftestLoadEvent(
     .clock              (aclk           ),
     .coreid             (0              ),
