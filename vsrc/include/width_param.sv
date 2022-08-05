@@ -21,4 +21,4 @@
 
 
 //CSR Reg
-`define CSR_REG_WIDTH 14
+`define CSRNUM_WIDTH 14

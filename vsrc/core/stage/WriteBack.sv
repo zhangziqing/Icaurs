@@ -6,6 +6,12 @@ module WriteBack (
     output logic rw_en,
     output logic [`REG_WIDTH - 1 : 0 ] rw_addr,
     output logic [`DATA_WIDTH - 1 : 0 ] rw_data,
+    output                               csr_wen,
+    output   [`CSRNUM_WIDTH - 1 : 0 ]    csr_waddr,
+    output   [`DATA_WIDTH - 1   : 0 ]    csr_wdata,
+    output   [`ADDR_WIDTH - 1   : 0 ]    epc,
+    output   [`DATA_WIDTH - 1   : 0 ]    etype,
+
 
     lsu_info_if.i       lsu_info,
     output [`DATA_WIDTH - 1 : 0] debug0_wb_rf_wdata,

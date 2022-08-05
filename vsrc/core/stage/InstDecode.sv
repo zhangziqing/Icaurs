@@ -36,19 +36,9 @@ module InstDecode(
 
     //branch info
     output predict_miss,
-
-    //csr
-    //1.data relate
-    csrData_pushForwward.i ex_csr_info,
-    csrData_pushForwward.i mem_csr_info,
     //2.csr reg data
-    input  logic [`DATA_WIDTH-1:0]    csr_reg_data,
-    output logic [`CSR_REG_WIDTH-1:0] csr_reg_addr,
-    //3.output csr info
-    csrData_pushForwward.o id_csr_info,
-
-    //except
-    except_info.o id_except_info,
+    input  logic [`DATA_WIDTH-1:0]    csr_data,
+    output logic [`CSRNUM_WIDTH-1:0]  csr_addr,
 
     //time 64 from csr
     input [63:0] timer_64,
@@ -80,11 +70,12 @@ module InstDecode(
 
 
     //except
-    wire except_type_break,except_type_syscall,inst_invaild;
+    wire except_type_break,except_type_syscall;
+    logic inst_invaild;
     assign except_type_break=~|(inst[31:15]^`BREAK);
     assign except_type_syscall=~|(inst[31:15]^`SYSCALL);
-    assign id_except_info.except_pc=if_info.pc;
-    assign id_except_info.except_type={16'b0,except_type_break,except_type_syscall,inst_invaild,13'b0};
+    assign id_info.except_pc=if_info.pc;
+    assign id_info.except_type={16'b0,except_type_break,except_type_syscall,inst_invaild,13'b0};
 
     //operation inst
     wire is_3r,is_ui5,is_si12,is_csr,is_rdcnt;
@@ -241,7 +232,6 @@ module InstDecode(
     assign id_info.pc=pc;
     assign id_info.lsu_op=is_load_store?inst[25:22]:4'b1111;
     assign id_info.lsu_data=r2_data;
-    assign id_info.csr_op={is_csrrd,is_csrwr,is_csrxchg};
 
     logic [`DATA_WIDTH - 1 : 0 ] oprand1;
     logic [`DATA_WIDTH - 1 : 0 ] oprand2;
@@ -363,7 +353,7 @@ module InstDecode(
         end
         else if(is_csr)
         begin
-            oprand1=id_csr_info.rw_data;
+            oprand1=id_info.csr_wdata;
             oprand2=0;
             id_info.ex_op=`ALU_OR;
             id_info.rw_en=1;
@@ -401,46 +391,36 @@ module InstDecode(
 
     //csr
     logic [`DATA_WIDTH-1:0] csr_read_result;
-    assign csr_reg_addr=inst[23:10];
+    assign csr_addr=inst[23:10];
+    assign csr_read_result = csr_data;
     //1.write csr reg data
     always @(*)
     begin
         if(is_csrrd)//csrrd
         begin
-            id_csr_info.rw_en=0;
-            id_csr_info.rw_addr=14'b0;
-            id_csr_info.rw_data=32'b0;
+            id_info.csr_wen=0;
+            id_info.csr_waddr=14'b0;
+            id_info.csr_wdata=32'b0;
         end
         else if(is_csrwr)//csrwr
         begin
-            id_csr_info.rw_en=1;
-            id_csr_info.rw_addr=csr_reg_addr;
-            id_csr_info.rw_data=r2_data;
+            id_info.csr_wen=1;
+            id_info.csr_waddr=csr_addr;
+            id_info.csr_wdata=r2_data;
         end
         else if(is_csrxchg)//csrxchg
         begin
-            id_csr_info.rw_en=1;
-            id_csr_info.rw_addr=csr_reg_addr;
-            id_csr_info.rw_data=(r2_data&r1_data)|(csr_read_result&~r1_data);
+            id_info.csr_wen=1;
+            id_info.csr_waddr=csr_addr;
+            id_info.csr_wdata=(r2_data & r1_data) | (csr_data & ~r1_data);
         end
         else
         begin
-            id_csr_info.rw_en=0;
-            id_csr_info.rw_addr=14'b0;
-            id_csr_info.rw_data=32'b0;
+            id_info.csr_wen=0;
+            id_info.csr_waddr=14'b0;
+            id_info.csr_wdata=32'b0;
         end
     end
-    //2.read csr reg data
-    always @(*)
-    begin
-        //data is related to ex
-        if(ex_csr_info.rw_en==1&&ex_csr_info.rw_addr==csr_reg_addr)
-            csr_read_result=ex_csr_info.rw_data;
-        //data is related to mem
-        else if(mem_csr_info.rw_en==1&&mem_csr_info.rw_addr==csr_reg_addr)
-            csr_read_result=mem_csr_info.rw_data;
-        else 
-            csr_read_result=csr_reg_data;
-    end
+    
 
 endmodule

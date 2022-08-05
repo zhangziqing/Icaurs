@@ -11,13 +11,7 @@ module ID_EX(
     //id output
     id_stage_if.i id_info,
     //ex input
-    id_stage_if.o ex_info    
-    //csr info
-    csrData_pushForwward.i id_csr_info,
-    csrData_pushForwward.o ex_csr_info,
-    //except
-    except_info.i id_except_info,
-    except_info.o ex_except_info
+    id_stage_if.o ex_info  
 );
 
 
@@ -45,17 +39,15 @@ begin
         ex_info.oprand1     <=`DATA_INVALID;
         ex_info.oprand2     <=`DATA_INVALID;
         ex_info.ex_op       <=`EX_OP_INVALID;
-        ex_info.lsu_op      <=`LSU_OP_INVALID;
-        ex_info.csr_op      <=`CSR_OP_INVALID;
         ex_info.rw_addr     <=`REG_ADDR_INVALID;
         ex_info.rw_en       <=`EN_INVALID;
         //ex_csr_info
-        ex_csr_info.rw_en   <=`EN_INVALID;
-        ex_csr_info.rw_addr <=`CSR_ADDR_INVALID;
-        ex_csr_info.rw_data <=`DATA_INVALID;
+        ex_info.csr_wen   <=`EN_INVALID;
+        ex_info.csr_waddr <=`CSR_ADDR_INVALID;
+        ex_info.csr_wdata <=`DATA_INVALID;
         //ex_except_info
-        ex_except_info.except_type  <=`DATA_INVALID;
-        ex_except_info.except_pc    <=`ADDR_INVALID;
+        ex_info.except_type  <=`DATA_INVALID;
+        ex_info.except_pc    <=`ADDR_INVALID;
     end
     else if (stall_stage)begin 
         //ex_info
@@ -66,16 +58,15 @@ begin
         ex_info.oprand2     <= ex_info.oprand2;
         ex_info.ex_op       <= ex_info.ex_op;
         ex_info.lsu_op      <= ex_info.lsu_op;
-        ex_info.csr_op      <= ex_info.csr_op;
         ex_info.rw_addr     <= ex_info.rw_addr;
         ex_info.rw_en       <= ex_info.rw_en;
         //ex_csr_info
-        ex_csr_info.rw_en   <= ex_csr_info.rw_en;
-        ex_csr_info.rw_addr <= ex_csr_info.rw_addr;
-        ex_csr_info.rw_data <= ex_csr_info.rw_data;
+        ex_info.csr_wen   <= ex_info.csr_wen;
+        ex_info.csr_waddr <= ex_info.csr_waddr;
+        ex_info.csr_wdata <= ex_info.csr_wdata;
         //ex_except_info
-        ex_except_info.except_type  <= ex_except_info.except_type;
-        ex_except_info.except_pc    <= ex_except_info.except_pc;
+        ex_info.except_type  <= ex_info.except_type;
+        ex_info.except_pc    <= ex_info.except_pc;
     end
     else
     begin
@@ -87,16 +78,15 @@ begin
         ex_info.oprand2     <= id_info.oprand2;
         ex_info.ex_op       <= id_info.ex_op;
         ex_info.lsu_op      <= id_info.lsu_op;
-        ex_info.csr_op      <= id_info.csr_op;
         ex_info.rw_addr     <= id_info.rw_addr;
         ex_info.rw_en       <= id_info.rw_en;
         //ex_csr_info<=id_csr_info
-        ex_csr_info.rw_en   <= id_csr_info.rw_en;
-        ex_csr_info.rw_addr <= id_csr_info.rw_addr;
-        ex_csr_info.rw_data <= id_csr_info.rw_data;
+        ex_info.csr_wen     <= id_info.csr_wen;
+        ex_info.csr_waddr   <= id_info.csr_waddr;
+        ex_info.csr_wdata   <= id_info.csr_wdata;
         //ex_except_info
-        ex_except_info.except_type  <= id_except_info.except_type;
-        ex_except_info.except_pc    <= id_except_info.except_pc;
+        ex_info.except_type  <= id_info.except_type;
+        ex_info.except_pc    <= id_info.except_pc;
     end
 end
 endmodule:ID_EX

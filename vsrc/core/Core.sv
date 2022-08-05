@@ -11,6 +11,7 @@ module Core(
     input reset,
     sram_if.m iram,
     sram_if.m dram,
+    input  [8 : 0] hw_int,
     output [31:0] debug0_wb_pc,
     output [ 3:0] debug0_wb_rf_wen,
     output [ 4:0] debug0_wb_rf_wnum,
@@ -23,6 +24,23 @@ module Core(
     logic stall;
     branch_info_if branch_info;
     if_stage_if if_info_id,if_info;
+    logic [63 : 0] timer_val;
+    logic [31 : 0] timer_id;
+    logic [`ADDR_WIDTH - 1  : 0 ] epc;
+    logic [`DATA_WIDTH - 1  : 0 ] etype;
+    logic                         exception_en;
+    logic [`DATA_WIDTH - 1  : 0 ] trap_entry;
+    logic [`DATA_WIDTH - 1  : 0 ] era;
+    logic [`CSRNUM_WIDTH - 1 : 0] csr_rd_addr;
+    logic [`CSRNUM_WIDTH - 1 : 0] csrfile_rd_addr;
+    logic [`CSRNUM_WIDTH - 1 : 0] csrfile_wr_addr;
+    logic [`DATA_WIDTH - 1  : 0 ] csr_rd_data;
+    logic [`DATA_WIDTH - 1  : 0 ] csrfile_rd_data;
+    logic [`DATA_WIDTH - 1  : 0 ] csrfile_wr_data;
+    logic  csr_rd_en;
+    logic  csrfile_wr_en;
+
+
     
     logic predict_branch;
 
@@ -116,7 +134,10 @@ module Core(
         .r2_en(r2_en),
         .r2_addr(r2_addr),
         .r2_data(r2_data),
-
+        .csr_addr(csr_rd_addr),
+        .csr_data(csr_rd_data),
+        .timer_64(timer_val),
+        .csr_tid(timer_id),
         .if_info(if_info_id),
         .id_info(id_info),
         .branch_info(branch_info),
@@ -164,17 +185,20 @@ module Core(
         .ex_rw_addr(ex_info.rw_addr),
         .ex_rw_en(ex_info.rw_en),
         .ex_rw_data(ex_info.ex_result),
-        .ex_data_valid(1),
+        .ex_data_valid(ex_valid),
+        .ex_stall(ex_stall),
 
         .mem_rw_addr(mem_info.rw_addr),
         .mem_rw_en(mem_info.rw_en),
         .mem_rw_data(mem_info.rw_data),
-        .mem_data_valid(1),
+        .mem_data_valid(mem_valid),
+        .mem_stall(mem_stall),
 
-        .wb_rw_addr(rd_en),
-        .wb_rw_en(rd_addr),
-        .wb_rw_data(rd_data),
+        .wb_rw_addr(rw_en),
+        .wb_rw_en(rw_addr),
+        .wb_rw_data(rw_data),
         .wb_data_valid(wb_valid),
+        .wb_stall(wb_stall),
 
         .reg_en(r2_rf_en),
         .reg_addr(r2_rf_addr),
@@ -183,6 +207,24 @@ module Core(
         .ex_lsu_op(ex_info.lsu_op),
         .mem_ram_rd_en(mem_info.ram_rd_en),
         .hazard_flag(load_flag2)
+    );
+    CSRBypass csr_bypass_0(
+        .ex_csr_wen(ex_info.csr_wen),
+        .ex_csr_waddr(ex_info.csr_waddr),
+        .ex_csr_wdata(ex_info.csr_wdata),
+        .mem_csr_wen(mem_info.csr_wen),
+        .mem_csr_waddr(mem_info.csr_waddr),
+        .mem_csr_wdata(mem_info.csr_wdata),
+        .wb_csr_wen(wb_info.csr_wen),
+        .wb_csr_waddr(wb_info.csr_waddr),
+        .wb_csr_wdata(wb_info.csr_wdata),
+
+        .csr_rd_addr(csr_rd_addr),
+        .csr_rd_data(csr_rd_data),
+        .csr_rd_en(csr_rd_en),
+
+        .csrfile_rd_addr(csrfile_rd_addr),
+        .csrfile_rd_data(csrfile_rd_data)
     );
 
     assign ex_stall = 0;
@@ -275,13 +317,33 @@ module Core(
         .rw_addr(rw_addr),
         .rw_data(rw_data)
     );
+
+    CSR csrfile_0 (
+        .clk(clock),
+        .rst(reset),
+        .csr_raddr(csrfile_rd_addr),
+        .csr_rdata(csrfile_rd_data),
+        .csr_wen(csr_wen),
+        .csr_waddr(csr_waddr),
+        .csr_wdata(csr_wdata),
+        .etype(etype),
+        .epc(epc),
+        .is_ertn(0),
+        //interrupt 
+        .ipi(hw_int[0]),
+        .hwi(hw_int[8:1]),
+        .is_interrupt(exception_en),
+        //timer 64
+        .timer_64(timer_val),
+        .timer_id(timer_id)
+    );
     PipelineController pipctl_0(
         .predict_miss(predict_miss),
         .real_addr(branch_info.branch_addr),
-        .exp_en(0),
+        .exp_en(exception_en),
         .e_ret(0),
-        .epc(0),
-        .trap_entry(),
+        .era(era),
+        .trap_entry(trap_entry),
         .flush(glo_flush),
         .flush_pc(flush_pc)
     );

@@ -59,6 +59,7 @@ module core_top(
         .dram(dram),
         .clock(aclk),
         .reset(!aresetn),
+        .hw_int(0),
         .debug0_wb_pc(debug0_wb_pc),
         .debug0_wb_rf_wdata(debug0_wb_rf_wdata),
         .debug0_wb_rf_wen(debug0_wb_rf_wen),

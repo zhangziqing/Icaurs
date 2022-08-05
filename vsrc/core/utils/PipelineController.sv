@@ -6,7 +6,7 @@ module PipelineController(
 
     input exp_en,
     input e_ret,
-    input  [`ADDR_WIDTH - 1 : 0]    epc,
+    input  [`ADDR_WIDTH - 1 : 0]    era,
     input  [`ADDR_WIDTH - 1 : 0]    trap_entry,
 
     output [ 4  : 0 ] flush,
@@ -17,7 +17,7 @@ module PipelineController(
 
     assign flush_pc = predict_miss  ?   real_addr :
                       exp_en        ?   trap_entry:
-                      e_ret         ?   epc :
+                      e_ret         ?   era :
                       0;
 
 endmodule

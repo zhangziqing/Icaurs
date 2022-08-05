@@ -1,4 +1,3 @@
-<<<<<<< hth
 `include "constant.sv"
 module EX_MEM(
     input rst,
@@ -12,13 +11,7 @@ module EX_MEM(
     //ex output
     ex_stage_if.i ex_info,
     //mem input
-    ex_stage_if.o mem_info
-    //csr info
-    csrData_pushForwward.i ex_csr_info,
-    csrData_pushForwward.o mem_csr_info,
-    //except info
-    except_info.i ex_except_info,
-    except_info.o mem_except_info
+    ex_stage_if.o mem_info,
 );
 
 wire stall_stage = !ls_valid || !ts_ready; 
@@ -46,12 +39,12 @@ begin
         mem_info.lsu_data   <=`DATA_INVALID;
         mem_info.lsu_op     <=`LSU_OP_INVALID;
         //mem_csr_info
-        mem_csr_info.rw_en  <=`EN_INVALID;
-        mem_csr_info.rw_addr<=`CSR_ADDR_INVALID;
-        mem_csr_info.rw_data<=`DATA_INVALID;
+        mem_info.csr_wen  <=`EN_INVALID;
+        mem_info.csr_waddr<=`CSR_ADDR_INVALID;
+        mem_info.csr_wdata<=`DATA_INVALID;
         //mem_except_info
-        mem_except_info.except_type <=`DATA_INVALID;
-        mem_except_info.except_pc   <=`ADDR_INVALID;
+        mem_info.except_type <=`DATA_INVALID;
+        mem_info.except_pc   <=`ADDR_INVALID;
     end
     else if (stall_stage)
     begin
@@ -64,12 +57,12 @@ begin
         mem_info.lsu_data   <= mem_info.lsu_data;
         mem_info.lsu_op     <= mem_info.lsu_op;
         //mem_csr_info
-        mem_csr_info.rw_en  <= mem_csr_info.rw_en;
-        mem_csr_info.rw_addr<= mem_csr_info.rw_addr;
-        mem_csr_info.rw_data<= mem_csr_info.rw_data;
+        mem_info.csr_wen   <= mem_info.csr_wen;
+        mem_info.csr_waddr <= mem_info.csr_waddr;
+        mem_info.csr_wdata <= mem_info.csr_wdata;
         //mem_except_info
-        mem_except_info.except_type <= mem_except_info.except_type;
-        mem_except_info.except_pc   <= mem_except_info.except_pc;
+        mem_info.except_type <= mem_info.except_type;
+        mem_info.except_pc   <= mem_info.except_pc;
     end
     else
     begin
@@ -82,12 +75,12 @@ begin
         mem_info.lsu_data   <= ex_info.lsu_data;
         mem_info.lsu_op     <= ex_info.lsu_op;
         //mem_csr_info<=ex_csr_info
-        mem_csr_info.rw_en  <= ex_csr_info.rw_en;
-        mem_csr_info.rw_addr<= ex_csr_info.rw_addr;
-        mem_csr_info.rw_data<= ex_csr_info.rw_data;
+        mem_info.csr_wen   <= ex_info.csr_wen;
+        mem_info.csr_waddr <= ex_info.csr_waddr;
+        mem_info.csr_wdata <= ex_info.csr_wdata;
         //mem_except_info
-        mem_except_info.except_type <= ex_except_info.except_type;
-        mem_except_info.except_pc   <= ex_except_info.except_pc;
+        mem_info.except_type <= ex_info.except_type;
+        mem_info.except_pc   <= ex_info.except_pc;
     end
 end
 endmodule:EX_MEM

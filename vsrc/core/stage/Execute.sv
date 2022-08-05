@@ -5,20 +5,14 @@ module Execute(
     //stage info
     id_stage_if.i id_info,
     ex_stage_if.o ex_info,
-    //csr info
-    csrData_pushForwward.i id_csr_info,
-    csrData_pushForwward.o ex_csr_info,
-    //except info
-    except_info.i id_except_info,
-    except_info.o ex_except_info
 );
     //except 
-    assign ex_except_info.except_type  = id_except_info.except_type;
-    assign ex_except_info.except_pc    = id_except_info.except_pc;
+    assign ex_info.except_type  = id_info.except_type;
+    assign ex_info.except_pc    = id_info.except_pc;
     //csr
-    assign ex_csr_info.rw_en=id_csr_info.rw_en;
-    assign ex_csr_info.rw_addr=id_csr_info.rw_addr;
-    assign ex_csr_info.rw_data=id_csr_info.rw_data;
+    assign ex_info.csr_wen=id_info.csr_wen;
+    assign ex_info.csr_waddr=id_info.csr_waddr;
+    assign ex_info.csr_wdata=id_info.csr_wdata;
 
     logic [`ALU_OP_WIDTH - 1 : 0] alu_op=id_info.ex_op;
     logic [`DATA_WIDTH - 1 : 0 ] alu_res;
