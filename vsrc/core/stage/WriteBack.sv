@@ -17,8 +17,113 @@ module WriteBack (
     output [`DATA_WIDTH - 1 : 0] debug0_wb_rf_wdata,
     output [`ADDR_WIDTH - 1 : 0] debug0_wb_pc,
     output [`REG_WIDTH - 1  : 0] debug0_wb_rf_wnum,
-    output                       debug0_wb_rf_wen
+    output                       debug0_wb_rf_wen,
+
+    //csr info
+    csr_info.i wb_csr_info,
+    csr_info.o to_csr_info,
+    //to csr
+    output          is_except,
+    output [31:0]   epc,
+    output [5:0]    Ecode,
+    output [8:0]    EsubCode,
+    output           is_va_error,
+    output [31:0]    va_error_in
 );
+    //to csr
+    wire etype=mem_info.except_type;
+    assign to_csr_info.is_ertn=wb_csr_info.is_ertn;
+    assign epc=mem_info.except_pc;
+    always @(*)
+    begin
+        if(etype[0]==1'b1)
+        begin
+            Ecode=`ecode_int;
+            EsubCode=9'b0;
+        end
+        else if(etype[1]==1'b1)
+        begin
+            Ecode=`ecode_adef;
+            EsubCode=9'b0;
+        end
+        else if(etype[2]==1'b1)
+        begin
+            Ecode=`ecode_tlbr;
+            EsubCode=9'b0;
+        end
+        else if(etype[3]==1'b1)
+        begin
+            Ecode=`ecode_pif;
+            EsubCode=9'b0;
+        end
+        else if(etype[4]==1'b1)
+        begin
+            Ecode=`ecode_ppi;
+            EsubCode=9'b0;
+        end
+        else if(etype[5]==1'b1)
+        begin
+            Ecode=`ecode_sys;
+            EsubCode=9'b0;
+        end
+        else if(etype[6]==1'b1)
+        begin
+            Ecode=`ecode_brk;
+            EsubCode=9'b0;
+        end
+        else if(etype[7]==1'b1)
+        begin
+            Ecode=`ecode_ine;
+            EsubCode=9'b0;
+        end
+        else if(etype[8]==1'b1)
+        begin
+            Ecode=`ecode_ipe;
+            EsubCode=9'b0;
+        end
+        else if(etype[9]==1'b1)
+        begin
+            Ecode=`ecode_ale;
+            EsubCode=9'b0;
+        end
+        else if(etype[10]==1'b1)
+        begin
+            Ecode=`ecode_adem;
+            EsubCode=9'b1;
+        end
+        else if(etype[11]==1'b1)
+        begin
+            Ecode=`ecode_tlbr;
+            EsubCode=9'b0;
+        end
+        else if(etype[12]==1'b1)
+        begin
+            Ecode=`ecode_pme;
+            EsubCode=9'b0;
+        end
+        else if(etype[13]==1'b1)
+        begin
+            Ecode=`ecode_ppi;
+            EsubCode=9'b0;
+        end
+        else if(etype[14]==1'b1)
+        begin
+            Ecode=`ecode_pis;
+            EsubCode=9'b0;
+        end
+        else if(etype[15]==1'b1)
+        begin
+            Ecode=`ecode_pil;
+            EsubCode=9'b0;
+        end
+        else
+        begin
+            Ecode=6'b0;
+            EsubCode=9'b0;
+        end
+    end
+
+
     logic [`DATA_WIDTH - 1 : 0] mem_read_result;
     logic [`DATA_WIDTH - 1 : 0] mem_to_reg;
     logic [3 : 0] lsu_op = mem_info.inst[25:22];

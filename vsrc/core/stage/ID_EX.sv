@@ -11,7 +11,10 @@ module ID_EX(
     //id output
     id_stage_if.i id_info,
     //ex input
-    id_stage_if.o ex_info  
+    id_stage_if.o ex_info,
+    //csr info
+    csr_info.i id_csr_info,
+    csr_info.o ex_csr_info
 );
 
 
@@ -48,6 +51,9 @@ begin
         //ex_except_info
         ex_info.except_type  <=`DATA_INVALID;
         ex_info.except_pc    <=`ADDR_INVALID;
+
+        //csr_info
+        ex_csr_info.is_ertn <= 0;
     end
     else if (stall_stage)begin 
         //ex_info
@@ -67,6 +73,9 @@ begin
         //ex_except_info
         ex_info.except_type  <= ex_info.except_type;
         ex_info.except_pc    <= ex_info.except_pc;
+
+        //csr_info
+        ex_csr_info.is_ertn <= ex_csr_info.is_ertn;
     end
     else
     begin
@@ -87,6 +96,9 @@ begin
         //ex_except_info
         ex_info.except_type  <= id_info.except_type;
         ex_info.except_pc    <= id_info.except_pc;
+
+        //csr_info
+        ex_csr_info.is_ertn <= id_csr_info.is_ertn;
     end
 end
 endmodule:ID_EX

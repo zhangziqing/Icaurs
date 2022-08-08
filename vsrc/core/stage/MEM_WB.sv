@@ -12,7 +12,10 @@ module MEM_WB(
     lsu_info_if.i lsu_info,
     //regfile input
     mem_stage_if.o wb_info,
-    lsu_info_if.o lsu_info_out
+    lsu_info_if.o lsu_info_out,
+    //csr info
+    csr_info.i mem_csr_info,
+    csr_info.o wb_csr_info,
 );
 
 wire stall_stage = !ls_valid || !ts_ready; 
@@ -43,6 +46,9 @@ begin
         wb_info.csr_wen   <=`EN_INVALID;
         wb_info.csr_waddr <=`CSR_ADDR_INVALID;
         wb_info.csr_wdata <=`DATA_INVALID;
+
+        //csr_info
+        wb_csr_info.is_ertn <= 0;
     end
     else if (stall_stage)begin
         //wb_info
@@ -63,6 +69,9 @@ begin
         lsu_info_out.st_data  <= lsu_info_out.st_data;
         wb_info.except_type   <= wb_info.except_type;
         wb_info.except_pc  <= wb_info.except_pc;
+
+        //csr_info
+        wb_csr_info.is_ertn <= wb_csr_info.is_ertn;
     end 
     else
     begin
@@ -84,6 +93,9 @@ begin
         lsu_info_out.st_data  <= lsu_info.st_data;
         wb_info.except_type <= mem_info.except_type;
         wb_info.except_pc   <= mem_info.except_pc;
+
+        //csr_info
+        wb_csr_info.is_ertn <= mem_csr_info.is_ertn;
     end
 end
 endmodule:MEM_WB

@@ -46,12 +46,12 @@ interface id_stage_if;
         output oprand2,
         output ex_op,
         output lsu_op,
-        output  csr_wen,
-        output  csr_waddr,
-        output  csr_wdata,
+        output csr_wen,
+        output csr_waddr,
+        output csr_wdata,
 
-        output  except_type,
-        output  except_pc,
+        output except_type,
+        output except_pc,
         output rw_addr,
         output rw_en
     );

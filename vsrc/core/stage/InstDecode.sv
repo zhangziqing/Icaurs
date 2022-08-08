@@ -33,6 +33,7 @@ module InstDecode(
     if_stage_if.o                   if_info,
     id_stage_if.o                   id_info,
     branch_info_if.o                branch_info, 
+    csr_info.o                      id_csr_info,
 
     //branch info
     output predict_miss,
@@ -68,6 +69,11 @@ module InstDecode(
     assign si12_ext=si12_ext_sign ? {{20{si12[11]}},si12} : {20'b0,si12};
     assign si20_ext={si20,12'b0};
 
+    //Privileged inst
+    wire is_ertn;
+    assign is_ertn=~|(inst^`ERTN);
+    //csr info
+    assign id_csr_info.is_ertn=is_ertn;
 
     //except
     wire except_type_break,except_type_syscall;

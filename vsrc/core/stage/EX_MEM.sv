@@ -12,6 +12,9 @@ module EX_MEM(
     ex_stage_if.i ex_info,
     //mem input
     ex_stage_if.o mem_info,
+    //csr info
+    csr_info.i ex_csr_info,
+    csr_info.o mem_csr_info
 );
 
 wire stall_stage = !ls_valid || !ts_ready; 
@@ -45,6 +48,9 @@ begin
         //mem_except_info
         mem_info.except_type <=`DATA_INVALID;
         mem_info.except_pc   <=`ADDR_INVALID;
+
+        //csr_info
+        mem_csr_info.is_ertn    <= 0;
     end
     else if (stall_stage)
     begin
@@ -63,6 +69,9 @@ begin
         //mem_except_info
         mem_info.except_type <= mem_info.except_type;
         mem_info.except_pc   <= mem_info.except_pc;
+
+        //csr_info
+        mem_csr_info.is_ertn    <= mem_csr_info.is_ertn;
     end
     else
     begin
@@ -81,6 +90,9 @@ begin
         //mem_except_info
         mem_info.except_type <= ex_info.except_type;
         mem_info.except_pc   <= ex_info.except_pc;
+
+        //csr_info
+        mem_csr_info.is_ertn    <= ex_csr_info.is_ertn;
     end
 end
 endmodule:EX_MEM

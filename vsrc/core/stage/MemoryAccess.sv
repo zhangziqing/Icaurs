@@ -7,10 +7,13 @@ module MemoryAccess(
     sram_if.m sram_io,
     mem_stage_if.o mem_info,
     ex_stage_if.i ex_info,
-    lsu_info_if.o lsu_info
-
+    lsu_info_if.o lsu_info,
+    //csr info
+    csr_info.i ex_csr_info,
+    csr_info.o mem_csr_info
 );
-
+    //csr_info
+    assign mem_csr_info.is_ertn = ex_csr_info.is_ertn;
 
     //csr
     assign mem_info.csr_wen     = ex_info.csr_wen;

@@ -8,8 +8,8 @@ module CSR(
     input                               clk,
     input                               rst,
     //read data
-    input   [`CSRNUM_WIDTH - 1 : 0 ]    csr_raddr,
-    output  logic [`DATA_WIDTH - 1   : 0 ]    csr_rdata,
+    input           [`CSRNUM_WIDTH - 1 : 0 ]    csr_raddr,
+    output  logic   [`DATA_WIDTH - 1   : 0 ]    csr_rdata,
     //write data
     input                               csr_wen,
     input   [`CSRNUM_WIDTH - 1 : 0 ]    csr_waddr,
@@ -23,7 +23,7 @@ module CSR(
     output  [`DATA_WIDTH - 1   : 0 ]   trap_entry,
     
     //except
-    input   [`DATA_WIDTH - 1   : 0 ]    etype,
+    input                               is_except,
     input   [`DATA_WIDTH - 1   : 0 ]    epc,
 
     input                           is_ertn,
@@ -33,7 +33,10 @@ module CSR(
     output                          is_interrupt,
     //timer 64
     output logic [63:0]             timer_64,
-    output logic [31:0]             timer_id
+    output logic [31:0]             timer_id,
+    //badv va error
+    input           is_va_error,
+    input [31:0]    va_error_in
 );
     logic [`DATA_WIDTH-1:0] csr_crmd;
     logic [`DATA_WIDTH-1:0] csr_prmd;
@@ -65,6 +68,7 @@ module CSR(
     logic [`DATA_WIDTH-1:0] csr_ctag;
     logic [`DATA_WIDTH-1:0] csr_dmw0;
     logic [`DATA_WIDTH-1:0] csr_dmw1;
+    
     //timer 64
     always @(posedge clk)
     begin
@@ -82,52 +86,52 @@ module CSR(
     //interrupt
     assign is_interrupt=csr_crmd[2]&(|(csr_estat[12:0]&csr_ecfg[12:0]));
 
-    //except
-    logic [`DATA_WIDTH - 1 : 0] except_type;
-    always @(*)
-    begin
-        if(csr_crmd[2]==1'b1)
-        begin
-            if(csr_estat[12:0]&csr_ecfg[12:0])
-                except_type=`excepttype_int;
-            else
-                except_type=`excepttype_non;
-        end
-        else if(csr_crmd[2]==1'b0)
-        begin
-            if(etype[13]==1'b1)
-                except_type=`excepttype_ine;
-            else if(etype[14]==1'b1)
-                except_type=`excepttype_sys;
-            else if(etype[15]==1'b1)
-                except_type=`excepttype_brk;
-        end
-        else
-            except_type=`excepttype_non;
-    end
-    logic is_except;
-    always @(*)
-    begin
-        case(except_type)
-        `excepttype_int ,
-        `excepttype_pil ,
-        `excepttype_pis ,
-        `excepttype_pif ,
-        `excepttype_pme ,
-        `excepttype_ppi ,
-        `excepttype_adef,
-        `excepttype_adem,
-        `excepttype_ale ,
-        `excepttype_sys ,
-        `excepttype_brk ,
-        `excepttype_ine ,
-        `excepttype_ipe ,
-        `excepttype_fpd ,
-        `excepttype_fpe ,
-        `excepttype_tlbr:is_except=1'b1;
-        default:is_except=1'b0;
-        endcase
-    end
+    // //except
+    // logic [`DATA_WIDTH - 1 : 0] except_type;
+    // always @(*)
+    // begin
+    //     if(csr_crmd[2]==1'b1)
+    //     begin
+    //         if(csr_estat[12:0]&csr_ecfg[12:0])
+    //             except_type=`excepttype_int;
+    //         else
+    //             except_type=`excepttype_non;
+    //     end
+    //     else if(csr_crmd[2]==1'b0)
+    //     begin
+    //         if(etype[13]==1'b1)
+    //             except_type=`excepttype_ine;
+    //         else if(etype[14]==1'b1)
+    //             except_type=`excepttype_sys;
+    //         else if(etype[15]==1'b1)
+    //             except_type=`excepttype_brk;
+    //     end
+    //     else
+    //         except_type=`excepttype_non;
+    // end
+    // logic is_except;
+    // always @(*)
+    // begin
+    //     case(except_type)
+    //     `excepttype_int ,
+    //     `excepttype_pil ,
+    //     `excepttype_pis ,
+    //     `excepttype_pif ,
+    //     `excepttype_pme ,
+    //     `excepttype_ppi ,
+    //     `excepttype_adef,
+    //     `excepttype_adem,
+    //     `excepttype_ale ,
+    //     `excepttype_sys ,
+    //     `excepttype_brk ,
+    //     `excepttype_ine ,
+    //     `excepttype_ipe ,
+    //     `excepttype_fpd ,
+    //     `excepttype_fpe ,
+    //     `excepttype_tlbr:is_except=1'b1;
+    //     default:is_except=1'b0;
+    //     endcase
+    // end
 
     //1.read csr reg data
     always @(*)
@@ -168,46 +172,40 @@ module CSR(
     end
 
     //2.write csr reg data
-    //2.1 timer
-    wire tcfg_wen,tval_wen,ticlr_wen;
-    assign tcfg_wen=csr_wen&&(csr_waddr==`CSR_TCFG);
-    assign tval_wen=csr_wen&&(csr_waddr==`CSR_TVAL);
-    assign ticlr_wen=csr_wen&&(csr_waddr==`CSR_TICLR);
-    logic timer_en;
-    always @(posedge clk)
-    begin
-        if(rst)
-            timer_en<=1'b0;
-        else if(tcfg_wen)
-            timer_en<=csr_wdata[0];
-        else if(timer_en&&csr_tval==32'b0)
-            timer_en<=csr_tcfg[1];
-    end
-    always @(posedge clk)
-    begin
-        if(tcfg_wen)
-            csr_tval<={csr_wdata[31:2],2'b00};
-        else if (timer_en)
-        begin
-            if(csr_tval!=32'b0)
-                csr_tval<=csr_tval-32'b1;
-            else if(csr_tval==32'b0)
-                csr_tval<=csr_tcfg[1]?{csr_tcfg[31:2],2'b00}:32'hffffffff;
-        end 
-    end
-    logic timer_interrupt;
-    always @(posedge clk)
-    begin
-        if(rst)
-            timer_interrupt<=1'b0;
-        else if(ticlr_wen&&csr_wdata[0]==1'b1)
-            timer_interrupt<=1'b0;
-        else if(timer_en&&csr_tval==32'b0)
-            timer_interrupt<=1'b1;
-    end
-    //2.2 crmdi
-    wire crmd_wen;
-    assign crmd_wen=csr_wen&&(csr_waddr==`CSR_CRMD);
+    //csr reg write signal
+    logic crmd_wen      = csr_wen && (csr_waddr == `CSR_CRMD        );
+    logic prmd_wen      = csr_wen && (csr_waddr == `CSR_PRMD        );
+    logic euen_wen      = csr_wen && (csr_waddr == `CSR_EUEN        );
+    logic ecfg_wen      = csr_wen && (csr_waddr == `CSR_ECFG        );
+    logic estat_wen     = csr_wen && (csr_waddr == `CSR_ESTAT       );
+    logic era_wen       = csr_wen && (csr_waddr == `CSR_ERA         );
+    logic badv_wen      = csr_wen && (csr_waddr == `CSR_BADV        );
+    logic eentry_wen    = csr_wen && (csr_waddr == `CSR_EENTRY      );
+    logic tlbidx_wen    = csr_wen && (csr_waddr == `CSR_TLBIDX      );
+    logic tlbehi_wen    = csr_wen && (csr_waddr == `CSR_TLBEHI      );
+    logic tlbelo0_wen   = csr_wen && (csr_waddr == `CSR_TLBELO0     );
+    logic tlbelo1_wen   = csr_wen && (csr_waddr == `CSR_TLBELO1     );
+    logic asid_wen      = csr_wen && (csr_waddr == `CSR_ASID        );
+    logic pgdl_wen      = csr_wen && (csr_waddr == `CSR_PGDL        );
+    logic pgdh_wen      = csr_wen && (csr_waddr == `CSR_PGDH        );
+    logic pgd_wen       = csr_wen && (csr_waddr == `CSR_PGD         );
+    logic cpuid_wen     = csr_wen && (csr_waddr == `CSR_CPUID       );
+    logic save0_wen     = csr_wen && (csr_waddr == `CSR_SAVE0       );
+    logic save1_wen     = csr_wen && (csr_waddr == `CSR_SAVE1       );
+    logic save2_wen     = csr_wen && (csr_waddr == `CSR_SAVE2       );
+    logic save3_wen     = csr_wen && (csr_waddr == `CSR_SAVE3       );
+    logic tid_wen       = csr_wen && (csr_waddr == `CSR_TID         );
+    logic tcfg_wen      = csr_wen && (csr_waddr == `CSR_TCFG        );
+    logic tval_wen      = csr_wen && (csr_waddr == `CSR_TVAL        );
+    logic ticlr_wen     = csr_wen && (csr_waddr == `CSR_TICLR       );
+    logic llbctl_wen    = csr_wen && (csr_waddr == `CSR_LLBCTL      );
+    logic tlbrentry_wen = csr_wen && (csr_waddr == `CSR_TLBRENTRY   );
+    logic ctag_wen      = csr_wen && (csr_waddr == `CSR_CTAG        );
+    logic dmw0_wen      = csr_wen && (csr_waddr == `CSR_DMW0        );
+    logic dmw1_wen      = csr_wen && (csr_waddr == `CSR_DMW1        );
+
+    //2.1 Basic control status register
+    //2.1.1 crmd
     always @(posedge clk)
     begin
         if(rst)
@@ -227,14 +225,8 @@ module CSR(
         begin
             csr_crmd[8:0]  <=csr_wdata[8:0];
         end
-        else 
-        begin
-            csr_crmd<=csr_crmd;
-        end
     end
-    //2.3 prmd
-    wire prmd_wen;
-    assign prmd_wen=csr_wen&&(csr_waddr==`CSR_PRMD);
+    //2.1.2 prmd
     always @(posedge clk)
     begin
         if(rst)
@@ -249,14 +241,42 @@ module CSR(
         begin
             csr_prmd[2:0]<=csr_wdata[2:0];
         end
-        else
+    end
+    //2.1.3 euen
+    always @(posedge clk)
+    begin
+        if(rst)
         begin
-            csr_prmd<=csr_prmd;
+            csr_euen[31:1]<=31'b0;
+        end
+        else if(euen_wen)
+        begin
+            csr_euen[0]<=csr_wdata[0];
         end
     end
-    //2.4 estat
-    wire estat_wen;
-    assign estat_wen=csr_wen&&(csr_waddr==`CSR_ESTAT);
+    //2.1.4 ecfg
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_ecfg[31:13]<=19'b0;
+        end
+        else if(ecfg_wen)
+        begin
+            csr_ecfg[12:0]<=csr_wdata[12:0];
+        end
+    end
+    //2.1.5 estat
+    logic timer_interrupt;
+    always @(posedge clk)
+    begin
+        if(rst)
+            timer_interrupt<=1'b0;
+        else if(ticlr_wen&&csr_wdata[0]==1'b1)
+            timer_interrupt<=1'b0;
+        else if(timer_en&&csr_tval==32'b0)
+            timer_interrupt<=1'b1;
+    end
     always @(posedge clk)
     begin
         if(rst)
@@ -273,15 +293,13 @@ module CSR(
                 csr_estat[21:16]<=except_type[5:0];
                 csr_estat[30:22]<=except_type[16:8];
             end
-            else if(is_ertn)
+            else if(estat_wen)
             begin
                 csr_estat[1:0]<=csr_wdata[1:0];
             end
         end
     end
-    //2.5 era
-    wire era_wen;
-    assign era_wen=csr_wen&&(csr_waddr==`CSR_ERA);
+    //2.1.6 era
     always @(posedge clk)
     begin
         if(is_except)
@@ -289,176 +307,262 @@ module CSR(
         else if(era_wen)
             csr_era<=csr_wdata;
     end
-    //2.6 others
+    //2.1.7 badv
+    always @(posedge clk)
+    begin
+        if(is_va_error)
+        begin
+            csr_badv<=va_error_in;
+        end
+        else if(badv_wen)
+        begin
+            csr_badv<=csr_wdata;
+        end
+    end
+    //2.1.8 eentry
     always @(posedge clk)
     begin
         if(rst)
         begin
-            csr_euen[0]     <=1'b0;
-            csr_euen[31:1]  <=31'b0;
-
-            csr_ecfg[12:0]  <=13'b0;
-            csr_ecfg[31:13] <=19'b0;
-
-            csr_eentry[5:0] <=6'b0;
-
-            csr_cpuid       <=32'b0;
-
-            csr_tcfg[0]    <=1'b0;
-            csr_llbctl[2]  <=1'b0;
-
-            csr_tlbehi[12:0]<=13'b0;
-
-            csr_tlbelo0[7]<=1'b0;
-
-            csr_tlbelo1[7]<=1'b0;
-
-            csr_asid[15:10]<=6'b0;
-            csr_asid[31:24]<=8'b0;
-
-            csr_pgdl[11:0]<=12'b0;
-
-            csr_pgdh[11:0]<=12'b0;
-
-            csr_pgd[11:0]<=12'b0;
-            
-            csr_tlbrentry[5:0]<=6'b0;
-
-            csr_dmw0[0]    <=1'b0;
-            csr_dmw0[2:1]  <=2'b0;
-            csr_dmw0[3]    <=1'b0;
-            csr_dmw0[24:6] <=19'b0;
-            csr_dmw0[28]   <=1'b0;
-
-            csr_dmw1[0]    <=1'b0;
-            csr_dmw1[2:1]  <=2'b0;
-            csr_dmw1[3]    <=1'b0;
-            csr_dmw1[24:6] <=19'b0;
-            csr_dmw1[28]   <=1'b0;
-
-            csr_tid<=32'b0;
-
-            csr_tcfg[0]<=1'b0;
-            
-            csr_ticlr[31:0]<=32'b0;
+            csr_eentry[5:0]<=6'b0;
         end
-        else if(csr_wen)
+        else if(eentry_wen)
         begin
-            case(csr_waddr)  
-            `CSR_EUEN:
-            begin
-                csr_euen[0]<=csr_wdata[0];
-            end      
-            `CSR_ECFG:
-            begin
-                csr_ecfg[12:0]<=csr_wdata[12:0];
-            end           
-            `CSR_BADV:
-            begin
-                csr_badv[31:0]<=csr_wdata[31:0];
-            end      
-            `CSR_EENTRY:
-            begin
-                csr_eentry[31:6]<=csr_wdata[31:6];
-            end   
-            `CSR_TLBIDX:
-            begin
-                csr_tlbidx[`n-1:0]<=csr_wdata[`n-1:0];
-                csr_tlbidx[29:24]<=csr_wdata[29:24];
-                csr_tlbidx[31]<=csr_wdata[31];
-            end    
-            `CSR_TLBEHI:
-            begin
-                csr_tlbehi[31:13]<=csr_wdata[31:13];
-            end  
-            `CSR_TLBELO0:
-            begin
-                csr_tlbelo0[6:0]<=csr_wdata[6:0];
-                csr_tlbelo0[31:8]<=csr_wdata[31:8];
-            end   
-            `CSR_TLBELO1:
-            begin
-                csr_tlbelo1[6:0]<=csr_wdata[6:0];
-                csr_tlbelo1[31:8]<=csr_wdata[31:8];
-            end   
-            `CSR_ASID:
-            begin
-                csr_asid[9:0]<=csr_wdata[9:0];
-            end     
-            `CSR_PGDL:
-            begin
-                csr_pgdl[31:12]<=csr_wdata[31:12];
-            end      
-            `CSR_PGDH:
-            begin
-                csr_pgdh[31:12]<=csr_wdata[31:12];
-            end      
-            `CSR_PGD:
-            begin
-                csr_pgd[31:12]<=csr_wdata[31:12];
-            end    
-            `CSR_CPUID:
-            begin
-                //cann't write
-            end    
-            `CSR_SAVE0:
-            begin
-                csr_save0[31:0]<=csr_wdata[31:0];
-            end   
-            `CSR_SAVE1:
-            begin
-                csr_save1[31:0]<=csr_wdata[31:0];
-            end  
-            `CSR_SAVE2:
-            begin
-                csr_save2[31:0]<=csr_wdata[31:0];
-            end    
-            `CSR_SAVE3:
-            begin
-                csr_save3[31:0]<=csr_wdata[31:0];
-            end    
-            `CSR_TID:
-            begin
-                csr_tid[31:0]<=csr_wdata[31:0];
-            end      
-            `CSR_TCFG:
-            begin
-                csr_tcfg[31:0]<=csr_wdata[31:0];
-            end      
-            `CSR_TICLR:
-            begin
-                csr_ticlr[31:0]<=32'b0;
-            end     
-            `CSR_LLBCTL:
-            begin
-                csr_llbctl[1]<=(csr_wdata[1] <= 1) ? 1'b1 : csr_llbctl[1];
-            end    
-            `CSR_TLBRENTRY:
-            begin
-                csr_tlbrentry[31:6]<=csr_wdata[31:6];
-            end 
-            `CSR_CTAG:
-            begin
-                //cann't find it!
-            end    
-            `CSR_DMW0:
-            begin
-                csr_dmw0[0]<=csr_wdata[0];
-                csr_dmw0[5:3]<=csr_wdata[5:3];
-                csr_dmw0[27:25]<=csr_wdata[27:25];
-                csr_dmw0[31:29]<=csr_wdata[31:29];
-            end      
-            `CSR_DMW1:
-            begin
-                csr_dmw1[0]<=csr_wdata[0];
-                csr_dmw1[5:3]<=csr_wdata[5:3];
-                csr_dmw1[27:25]<=csr_wdata[27:25];
-                csr_dmw1[31:29]<=csr_wdata[31:29];
-            end
-            default:
-            begin
-            end      
-            endcase
+            csr_eentry[31:6]<=csr_wdata[31:6];
         end
     end
+    //2.1.9 cpuid
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_cpuid<=32'b0;
+        end
+    end
+    //2.1.10.0 save0
+    always @(posedge clk)
+    begin
+        if(save0_wen)
+        begin
+            csr_save0<=csr_wdata;
+        end
+    end
+    //2.1.10.1 save1
+    always @(posedge clk)
+    begin
+        if(save1_wen)
+        begin
+            csr_save1<=csr_wdata;
+        end
+    end
+    //2.1.10.2 save2
+    always @(posedge clk)
+    begin
+        if(save2_wen)
+        begin
+            csr_save2<=csr_wdata;
+        end
+    end
+    //2.1.10.3 save3
+    always @(posedge clk)
+    begin
+        if(save3_wen)
+        begin
+            csr_save3<=csr_wdata;
+        end
+    end
+    //2.1.11 llbctl
+    reg llbit;
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_llbctl[31:2]<=30'b0;
+            llbit<=1'b0;
+        end
+        else if(llbctl_wen)
+        begin
+            csr_llbctl[2]<=csr_wdata[2];
+            if(csr_wdata[1]==1'b1)
+            begin
+                llbit=1'b0;
+            end
+        end
+        else if(is_ertn)
+        begin
+            if(csr_llbctl[2]==1'b1)
+            begin
+                csr_llbctl[2]<=1'b0;
+            end
+            else
+            begin
+                llbit<=1'b0;
+            end
+        end
+    end
+
+    //2.2 Mapping address translation related control status register
+    //2.2.1 tlbidx
+
+    //2.2.2 tlbehi
+
+    //2.2.3.0 tlbelo0
+
+    //2.2.3.1 tlbelo1
+
+    //2.2.4 asid
+
+    //2.2.5 pgdl
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_pgdl[11:0]<=12'b0;
+        end
+        else if(pgdl_wen)
+        begin
+            csr_pgdl[31:12]<=csr_wdata[31:12];
+        end
+    end
+    //2.2.6 pgdh
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_pgdh[11:0]<=12'b0;
+        end
+        else if(pgdh_wen)
+        begin
+            csr_pgdh[31:12]<=csr_wdata[31:12];
+        end
+    end
+    //2.2.7 pgd
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_pgd[11:0]<=12'b0;
+        end
+        else 
+        begin
+            if(csr_badv[31]==1'b0)
+            begin
+                csr_pgd[31:12]<=csr_pgdl[31:12];
+            end
+            else
+            begin
+                csr_pgd[31:12]<=csr_pgdh[31:12];
+            end
+        end
+    end
+    //2.2.8 tlbrentry
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_tlbrentry[5:0]<=6'b0;
+        end
+        else if(tlbrentry_wen)
+        begin
+            csr_tlbrentry[31:6]<=csr_wdata[31:6];
+        end
+    end
+    //2.2.9.0 dmw0
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_dmw0[2:1]<=2'b0;
+            csr_dmw0[24:6]<=19'b0;
+            csr_dmw0[28]<=1'b0;
+        end
+        else if(dmw0_wen)
+        begin
+            csr_dmw0[0]<=csr_wdata[0];
+            csr_dmw0[5:3]<=csr_wdata[5:3];
+            csr_dmw0[27:25]<=csr_wdata[27:25];  
+            csr_dmw0[31:29]<=csr_wdata[31:29];          
+        end
+    end
+    //2.2.9.1 dmw1
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_dmw1[2:1]<=2'b0;
+            csr_dmw1[24:6]<=19'b0;
+            csr_dmw1[28]<=1'b0;
+        end
+        else if(dmw1_wen)
+        begin
+            csr_dmw1[0]<=csr_wdata[0];
+            csr_dmw1[5:3]<=csr_wdata[5:3];
+            csr_dmw1[27:25]<=csr_wdata[27:25];  
+            csr_dmw1[31:29]<=csr_wdata[31:29];          
+        end
+    end
+
+    //2.3 Timer related control status register
+    //2.3.1 tid
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_tid<=32'b0;
+        end
+        else if(tid_wen)
+        begin
+            csr_tid<=csr_wdata;
+        end
+    end
+    //2.3.2 tcfg
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_tcfg[0]<=1'b0;
+        end
+        else if(tcfg_wen)
+        begin
+            csr_tcfg<=csr_wdata;
+        end
+    end
+    //2.3.3 tval
+    logic timer_en;
+    always @(posedge clk)
+    begin
+        if(rst)
+            timer_en<=1'b0;
+        else if(tcfg_wen)
+            timer_en<=csr_wdata[0];
+        else if(timer_en&&csr_tval==32'b0)
+            timer_en<=csr_tcfg[1];
+    end
+    always @(posedge clk)
+    begin
+        if(tcfg_wen)
+        begin
+            csr_tval<={csr_wdata[31:2],2'b00};
+        end
+        else if (timer_en)
+        begin
+            if(csr_tval!=32'b0)
+            begin
+                csr_tval<=csr_tval-32'b1;
+            end
+            else if(csr_tval==32'b0)
+            begin
+                csr_tval<=csr_tcfg[1]?{csr_tcfg[31:2],2'b00}:32'hffffffff;
+            end
+        end 
+    end
+    //2.3.4 ticlr
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_ticlr<=32'b0;
+        end
+    end
+    
 endmodule

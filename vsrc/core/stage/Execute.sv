@@ -5,7 +5,12 @@ module Execute(
     //stage info
     id_stage_if.i id_info,
     ex_stage_if.o ex_info,
+    //csr info
+    csr_info.i id_csr_info,
+    csr_info.o ex_csr_info
 );
+    //csr_info
+    assign ex_csr_info.is_ertn=id_csr_info.is_ertn;
     //except 
     assign ex_info.except_type  = id_info.except_type;
     assign ex_info.except_pc    = id_info.except_pc;
