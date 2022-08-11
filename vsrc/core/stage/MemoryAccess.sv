@@ -7,14 +7,21 @@ module MemoryAccess(
     sram_if.m sram_io,
     mem_stage_if.o mem_info,
     ex_stage_if.i ex_info,
-    lsu_info_if.o lsu_info,
-    //csr info
-    csr_info.i ex_csr_info,
-    csr_info.o mem_csr_info
+    lsu_info_if.o lsu_info
 );
-    //csr_info
-    assign mem_csr_info.is_ertn = ex_csr_info.is_ertn;
+    //except
+    //TODO
+    wire [15:0] except_type;
+    logic except_type_pil,except_type_pis,except_type_ppi,except_type_pme,except_type_tlbr,except_type_adem;
+    assign except_type={except_type_pil,except_type_pis,except_type_ppi,except_type_pme,except_type_tlbr,except_type_adem,ex_info.except_type};
+    assign mem_info.except_type=except_type;
 
+    assign mem_info.is_cacop     = ex_info.is_cacop;
+    assign mem_info.cacop_code   = ex_info.cacop_code;
+    assign mem_info.is_tlb       = ex_info.is_tlb;
+    assign mem_info.invtlb_op    = ex_info.invtlb_op;
+    assign mem_info.is_ertn      = ex_info.is_ertn;
+    assign mem_info.is_idle      = ex_info.is_idle;
     //csr
     assign mem_info.csr_wen     = ex_info.csr_wen;
     assign mem_info.csr_waddr   = ex_info.csr_waddr;

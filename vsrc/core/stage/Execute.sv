@@ -4,15 +4,12 @@
 module Execute(
     //stage info
     id_stage_if.i id_info,
-    ex_stage_if.o ex_info,
-    //csr info
-    csr_info.i id_csr_info,
-    csr_info.o ex_csr_info
+    ex_stage_if.o ex_info
 );
-    //csr_info
-    assign ex_csr_info.is_ertn=id_csr_info.is_ertn;
     //except 
-    assign ex_info.except_type  = id_info.except_type;
+    //TODO
+    logic except_type_ale;
+    assign ex_info.except_type  = {except_type_ale,id_info.except_type};
     assign ex_info.except_pc    = id_info.except_pc;
     //csr
     assign ex_info.csr_wen=id_info.csr_wen;
@@ -43,6 +40,13 @@ module Execute(
     assign ex_info.rw_en = id_info.rw_en;
     assign ex_info.rw_addr = id_info.rw_addr;
     assign ex_info.ex_result = alu_op[5] ? mdu_res : alu_res;
+
+    assign ex_info.is_cacop     = id_info.is_cacop;
+    assign ex_info.cacop_code   = id_info.cacop_code;
+    assign ex_info.is_tlb       = id_info.is_tlb;
+    assign ex_info.invtlb_op    = id_info.invtlb_op;
+    assign ex_info.is_ertn      = id_info.is_ertn;
+    assign ex_info.is_idle      = id_info.is_idle;
 
 endmodule
 

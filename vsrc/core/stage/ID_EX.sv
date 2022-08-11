@@ -11,10 +11,7 @@ module ID_EX(
     //id output
     id_stage_if.i id_info,
     //ex input
-    id_stage_if.o ex_info,
-    //csr info
-    csr_info.i id_csr_info,
-    csr_info.o ex_csr_info
+    id_stage_if.o ex_info
 );
 
 
@@ -49,11 +46,15 @@ begin
         ex_info.csr_waddr <=`CSR_ADDR_INVALID;
         ex_info.csr_wdata <=`DATA_INVALID;
         //ex_except_info
-        ex_info.except_type  <=`DATA_INVALID;
+        ex_info.except_type  <=9'b0;
         ex_info.except_pc    <=`ADDR_INVALID;
-
-        //csr_info
-        ex_csr_info.is_ertn <= 0;
+        //privilege info
+        ex_info.is_cacop        <=0;
+        ex_info.cacop_code      <=5'b0;
+        ex_info.is_tlb          <=5'b0;
+        ex_info.invtlb_op       <=5'b0;
+        ex_info.is_ertn         <=0;
+        ex_info.is_idle         <=0;
     end
     else if (stall_stage)begin 
         //ex_info
@@ -73,9 +74,13 @@ begin
         //ex_except_info
         ex_info.except_type  <= ex_info.except_type;
         ex_info.except_pc    <= ex_info.except_pc;
-
-        //csr_info
-        ex_csr_info.is_ertn <= ex_csr_info.is_ertn;
+        //privilege info
+        ex_info.is_cacop        <= ex_info.is_cacop;
+        ex_info.cacop_code      <= ex_info.cacop_code;
+        ex_info.is_tlb          <= ex_info.is_tlb;
+        ex_info.invtlb_op       <= ex_info.invtlb_op;
+        ex_info.is_ertn         <= ex_info.is_ertn;
+        ex_info.is_idle         <= ex_info.is_idle;
     end
     else
     begin
@@ -96,9 +101,13 @@ begin
         //ex_except_info
         ex_info.except_type  <= id_info.except_type;
         ex_info.except_pc    <= id_info.except_pc;
-
-        //csr_info
-        ex_csr_info.is_ertn <= id_csr_info.is_ertn;
+        //privilege info
+        ex_info.is_cacop        <= id_info.is_cacop;
+        ex_info.cacop_code      <= id_info.cacop_code;
+        ex_info.is_tlb          <= id_info.is_tlb;
+        ex_info.invtlb_op       <= id_info.invtlb_op;
+        ex_info.is_ertn         <= id_info.is_ertn;
+        ex_info.is_idle         <= id_info.is_idle;
     end
 end
 endmodule:ID_EX

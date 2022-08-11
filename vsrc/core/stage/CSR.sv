@@ -14,19 +14,13 @@ module CSR(
     input                               csr_wen,
     input   [`CSRNUM_WIDTH - 1 : 0 ]    csr_waddr,
     input   [`DATA_WIDTH - 1   : 0 ]    csr_wdata,
-    //output csr reg info
-    //asid
-    //dmw0
-    //dmw1
-    //etc
-    output  [`DATA_WIDTH - 1   : 0 ]   era,
-    output  [`DATA_WIDTH - 1   : 0 ]   trap_entry,
     
     //except
     input                               is_except,
     input   [`DATA_WIDTH - 1   : 0 ]    epc,
-
-    input                           is_ertn,
+    input                               is_ertn,
+    input [5:0]                         Ecode,
+    input [8:0]                         EsubCode,
     //interrupt 
     input                           ipi,
     input [7:0]                     hwi,
@@ -36,7 +30,38 @@ module CSR(
     output logic [31:0]             timer_id,
     //badv va error
     input           is_va_error,
-    input [31:0]    va_error_in
+    input [31:0]    va_error_in,
+
+    //tlb
+    //tlb except
+    input           etype_tlb,
+    input [18:0]    etype_tlb_vppn,
+    //tlbsrch
+    input           is_tlbsrch,
+    input           tlbsrch_found,
+    input [4:0]     tlbsrch_index,
+    //from addr trans
+    input           is_tlbrd,
+    input [31:0]    tlbidx_in,
+    input [31:0]    tlbehi_in,
+    input [31:0]    tlbelo0_in,
+    input [31:0]    tlbelo1_in,
+    input [9:0]     asid_in,
+
+    output  [`DATA_WIDTH - 1   : 0 ]    trap_entry,
+    //output csr reg info
+    output  [`DATA_WIDTH - 1   : 0 ]    era_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    dmw0_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    dmw1_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    tlbidx_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    tlbehi_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    tlbelo0_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    tlbelo1_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    asid_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    pgdl_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    pgdh_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    pgd_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    tlbrentry_out
 );
     logic [`DATA_WIDTH-1:0] csr_crmd;
     logic [`DATA_WIDTH-1:0] csr_prmd;
@@ -68,6 +93,29 @@ module CSR(
     logic [`DATA_WIDTH-1:0] csr_ctag;
     logic [`DATA_WIDTH-1:0] csr_dmw0;
     logic [`DATA_WIDTH-1:0] csr_dmw1;
+
+    assign trap_entry=etype_tlb?csr_tlbrentry:csr_eentry;
+    //csr reg out
+    assign era_out      =csr_era;
+    assign dmw0_out     =csr_dmw0;
+    assign dmw1_out     =csr_dmw1;
+    assign tlbidx_out   =csr_tlbidx;
+    assign tlbehi_out   =csr_tlbehi;
+    assign tlbelo0_out  =csr_tlbelo0;
+    assign tlbelo1_out  =csr_tlbelo1;
+    assign asid_out     =csr_asid;
+    assign pgdl_out     =csr_pgdl;
+    assign pgdh_out     =csr_pgdh;
+    assign pgd_out      =csr_pgd;
+    assign tlbrentry_out=csr_tlbrentry;    
+
+    //interrupt
+    assign is_interrupt=csr_crmd[2]&(|(csr_estat[12:0]&csr_ecfg[12:0]));
+
+    //tlb
+    wire tlbrd_vaild,tlbrd_invaild;
+    assign tlbrd_vaild=is_tlbrd&&!tlbidx_in[31];
+    assign tlbrd_invaild=is_tlbrd&&tlbidx_in[31];
     
     //timer 64
     always @(posedge clk)
@@ -83,55 +131,6 @@ module CSR(
     end
     assign timer_id=csr_tid;
 
-    //interrupt
-    assign is_interrupt=csr_crmd[2]&(|(csr_estat[12:0]&csr_ecfg[12:0]));
-
-    // //except
-    // logic [`DATA_WIDTH - 1 : 0] except_type;
-    // always @(*)
-    // begin
-    //     if(csr_crmd[2]==1'b1)
-    //     begin
-    //         if(csr_estat[12:0]&csr_ecfg[12:0])
-    //             except_type=`excepttype_int;
-    //         else
-    //             except_type=`excepttype_non;
-    //     end
-    //     else if(csr_crmd[2]==1'b0)
-    //     begin
-    //         if(etype[13]==1'b1)
-    //             except_type=`excepttype_ine;
-    //         else if(etype[14]==1'b1)
-    //             except_type=`excepttype_sys;
-    //         else if(etype[15]==1'b1)
-    //             except_type=`excepttype_brk;
-    //     end
-    //     else
-    //         except_type=`excepttype_non;
-    // end
-    // logic is_except;
-    // always @(*)
-    // begin
-    //     case(except_type)
-    //     `excepttype_int ,
-    //     `excepttype_pil ,
-    //     `excepttype_pis ,
-    //     `excepttype_pif ,
-    //     `excepttype_pme ,
-    //     `excepttype_ppi ,
-    //     `excepttype_adef,
-    //     `excepttype_adem,
-    //     `excepttype_ale ,
-    //     `excepttype_sys ,
-    //     `excepttype_brk ,
-    //     `excepttype_ine ,
-    //     `excepttype_ipe ,
-    //     `excepttype_fpd ,
-    //     `excepttype_fpe ,
-    //     `excepttype_tlbr:is_except=1'b1;
-    //     default:is_except=1'b0;
-    //     endcase
-    // end
 
     //1.read csr reg data
     always @(*)
@@ -290,8 +289,8 @@ module CSR(
             csr_estat[12:2]<={ipi,timer_interrupt,hwi};
             if(is_except)
             begin
-                csr_estat[21:16]<=except_type[5:0];
-                csr_estat[30:22]<=except_type[16:8];
+                csr_estat[21:16]<=Ecode;
+                csr_estat[30:22]<=EsubCode;
             end
             else if(estat_wen)
             begin
@@ -403,15 +402,134 @@ module CSR(
 
     //2.2 Mapping address translation related control status register
     //2.2.1 tlbidx
-
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_tlbidx[23:5]<=19'b0;
+            csr_tlbidx[30]<=1'b0;
+        end
+        else if(tlbidx_wen)
+        begin
+            csr_tlbidx[4:0]<=csr_wdata[4:0];
+            csr_tlbidx[29:24]<=csr_wdata[29:24];
+            csr_tlbidx[31]<=csr_wdata[31];
+        end
+        else if(is_tlbsrch)
+        begin
+            if(tlbsrch_found)
+            begin
+                csr_tlbidx[4:0]<=tlbsrch_index;
+                csr_tlbidx[31]<=1'b0;
+            end
+            else
+            begin
+                csr_tlbidx[31]<=1'b1;
+            end
+        end
+        else if(tlbrd_vaild)
+        begin
+            csr_tlbidx[29:24]<=tlbidx_in[29:24];
+            csr_tlbidx[31]<=1'b0;
+        end
+        else if(tlbrd_invaild)
+        begin
+            csr_tlbidx[29:24]<=6'b0;
+            csr_tlbidx[31]<=1'b1;
+        end
+    end
     //2.2.2 tlbehi
-
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_tlbehi[12:0]<=13'b0;
+        end
+        else if(tlbehi_wen)
+        begin
+            csr_tlbehi[31:13]<=csr_wdata[31:13];
+        end
+        else if(tlbrd_vaild)
+        begin
+            csr_tlbehi[31:13]<=tlbehi_in[31:13];
+        end
+        else if(tlbrd_invaild)
+        begin
+            csr_tlbehi[31:13]<=19'b0;
+        end
+        else if(etype_tlb)
+        begin
+            csr_tlbehi[31:13]<=etype_tlb_vppn;
+        end
+    end
     //2.2.3.0 tlbelo0
-
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_tlbelo0[7]<=1'b0;
+        end
+        else if(tlbelo0_wen)
+        begin
+            csr_tlbelo0[6:0]<=csr_wdata[6:0];
+            csr_tlbelo0[31:8]<=csr_wdata[31:8];
+        end
+        else if(tlbrd_vaild)
+        begin
+            csr_tlbelo0[6:0]<=tlbelo0_in[6:0];
+            csr_tlbelo0[31:8]<=tlbelo0_in[31:8];
+        end
+        else if(tlbrd_invaild)
+        begin
+            csr_tlbelo0[6:0]<=7'b0;
+            csr_tlbelo0[31:8]<=24'b0;
+        end
+    end
     //2.2.3.1 tlbelo1
-
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_tlbelo1[7]<=1'b0;
+        end
+        else if(tlbelo1_wen)
+        begin
+            csr_tlbelo1[6:0]<=csr_wdata[6:0];
+            csr_tlbelo1[31:8]<=csr_wdata[31:8];
+        end
+        else if(tlbrd_vaild)
+        begin
+            csr_tlbelo1[6:0]<=tlbelo1_in[6:0];
+            csr_tlbelo1[31:8]<=tlbelo1_in[31:8];
+        end
+        else if(tlbrd_invaild)
+        begin
+            csr_tlbelo1[6:0]<=7'b0;
+            csr_tlbelo1[31:8]<=24'b0;
+        end
+    end
     //2.2.4 asid
-
+    always @(posedge clk)
+    begin
+        if(rst)
+        begin
+            csr_asid[15:10]<=6'b0;
+            csr_asid[23:16]<=8'h10;
+            csr_asid[31:24]<=8'b0;
+        end
+        else if(asid_wen)
+        begin
+            csr_asid[9:0]<=csr_wdata[9:0];
+        end
+        else if(tlbrd_vaild)
+        begin
+            csr_asid[9:0]<=asid_in;
+        end
+        else if(tlbrd_invaild)
+        begin
+            csr_asid[9:0]<=10'b0;
+        end
+    end
     //2.2.5 pgdl
     always @(posedge clk)
     begin

@@ -10,10 +10,17 @@ interface ex_stage_if;
     logic                               csr_wen;
     logic  [`DATA_WIDTH - 1     : 0 ]   csr_wdata;
     logic  [`CSRNUM_WIDTH - 1   : 0 ]   csr_waddr;
-    logic  [`DATA_WIDTH - 1 : 0]        except_type;
+    logic  [9 : 0]                      except_type;
     logic  [`INST_WIDTH - 1 : 0]        except_pc;
     logic [`DATA_WIDTH - 1 : 0]         lsu_data;
     logic [`LSU_OP_WIDTH - 1 : 0]       lsu_op;
+
+    logic                               is_cacop;
+    logic  [4:0]                        cacop_code;
+    logic  [4:0]                        is_tlb;
+    logic  [4:0]                        invtlb_op;
+    logic                               is_ertn;
+    logic                               is_idle;
 
     modport i(
         input inst,
@@ -29,7 +36,14 @@ interface ex_stage_if;
         input except_type,
         input except_pc,
         input lsu_data,
-        input lsu_op
+        input lsu_op,
+
+        input is_cacop,
+        input cacop_code,
+        input is_tlb,
+        input invtlb_op,
+        input is_ertn,
+        input is_idle
     );
 
     modport o(
@@ -47,7 +61,14 @@ interface ex_stage_if;
         output  rw_addr,
 
         output  lsu_data,
-        output  lsu_op
+        output  lsu_op,
+
+        output is_cacop,
+        output cacop_code,
+        output is_tlb,
+        output invtlb_op,
+        output is_ertn,
+        output is_idle
     );
 
 endinterface:ex_stage_if

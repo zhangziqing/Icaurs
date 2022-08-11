@@ -26,11 +26,13 @@ module Core(
     if_stage_if if_info_id,if_info;
     logic [63 : 0] timer_val;
     logic [31 : 0] timer_id;
+    logic                         is_except;
     logic [`ADDR_WIDTH - 1  : 0 ] epc;
-    logic [`DATA_WIDTH - 1  : 0 ] etype;
     logic                         exception_en;
+    logic                         is_ertn;
+    logic [5:0]                   Ecode;
+    logic [8:0]                   EsubCode;
     logic [`DATA_WIDTH - 1  : 0 ] trap_entry;
-    logic [`DATA_WIDTH - 1  : 0 ] era;
     logic [`CSRNUM_WIDTH - 1 : 0] csr_rd_addr;
     logic [`CSRNUM_WIDTH - 1 : 0] csrfile_rd_addr;
     logic [`CSRNUM_WIDTH - 1 : 0] csrfile_wr_addr;
@@ -39,7 +41,32 @@ module Core(
     logic [`DATA_WIDTH - 1  : 0 ] csrfile_wr_data;
     logic  csr_rd_en;
     logic  csrfile_wr_en;
+    logic           is_va_error;
+    logic [31:0]    va_error_in;
+    logic           etype_tlb;
+    logic [18:0]    etype_tlb_vppn;
+    logic           is_tlbsrch;
+    logic           tlbsrch_found;
+    logic [4:0]     tlbsrch_index;
+    logic           is_tlbrd;
+    logic [31:0]    tlbidx_in;
+    logic [31:0]    tlbehi_in;
+    logic [31:0]    tlbelo0_in;
+    logic [31:0]    tlbelo1_in;
+    logic [9:0]     asid_in;
 
+    logic  [`DATA_WIDTH - 1   : 0 ]    era_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    dmw0_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    dmw1_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    tlbidx_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    tlbehi_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    tlbelo0_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    tlbelo1_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    asid_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    pgdl_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    pgdh_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    pgd_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    tlbrentry_out;
 
     
     logic predict_branch;
@@ -136,6 +163,7 @@ module Core(
         .r2_data(r2_data),
         .csr_addr(csr_rd_addr),
         .csr_data(csr_rd_data),
+        .is_interrupt(exception_en),
         .timer_64(timer_val),
         .csr_tid(timer_id),
         .if_info(if_info_id),
@@ -302,6 +330,18 @@ module Core(
         .debug0_wb_rf_wnum(debug0_wb_rf_wnum),
         .debug0_wb_rf_wen(debug0_wb_rf_wen),
         .debug0_wb_pc(debug0_wb_pc)
+        .is_except(is_except),
+        .is_ertn(is_ertn),
+        .epc(epc),
+        .Ecode(Ecode),
+        .EsubCode(EsubCode),
+        .is_va_error(is_va_error),
+        .va_error_in(va_error_in),
+        .etype_tlb(etype_tlb),
+        .etype_tlb_vppn(etype_tlb_vppn),
+        .is_tlbsrch(is_tlbsrch),
+        .tlbsrch_found(tlbsrch_found),
+        .tlbsrch_index(tlbsrch_index)
     );
 
     RegFile reg_0 (
@@ -326,23 +366,53 @@ module Core(
         .csr_wen(csr_wen),
         .csr_waddr(csr_waddr),
         .csr_wdata(csr_wdata),
-        .etype(etype),
+        .is_except(is_except),
         .epc(epc),
-        .is_ertn(0),
+        .is_ertn(is_ertn),
+        .Ecode(Ecode),
+        .EsubCode(EsubCode),
         //interrupt 
         .ipi(hw_int[0]),
         .hwi(hw_int[8:1]),
         .is_interrupt(exception_en),
         //timer 64
         .timer_64(timer_val),
-        .timer_id(timer_id)
+        .timer_id(timer_id),
+        //badv va error
+        .is_va_error(is_va_error),
+        .va_error_in(va_error_in),
+        //tlb
+        .etype_tlb(etype_tlb),
+        .etype_tlb_vppn(etype_tlb_vppn),
+        .is_tlbsrch(is_tlbsrch),
+        .tlbsrch_found(tlbsrch_found),
+        .tlbsrch_index(tlbsrch_index),
+        .is_tlbrd(is_tlbrd),
+        .tlbidx_in(tlbidx_in),
+        .tlbehi_in(tlbehi_in),
+        .tlbelo0_in(tlbelo0_in),
+        .tlbelo1_in(tlbelo1_in),
+        .asid_in(asid_in),
+        //csr reg out
+        .era_out(era_out),
+        .dmw0_out(dmw0_out),
+        .dmw1_out(dmw1_out),
+        .tlbidx_out(tlbidx_out),
+        .tlbehi_out(tlbehi_out),
+        .tlbelo0_out(tlbelo0_out),
+        .tlbelo1_out(tlbelo1_out),
+        .asid_out(asid_out),
+        .pgdl_out(pgdl_out),
+        .pgdh_out(pgdh_out),
+        .pgd_out(pgd_out),
+        .tlbrentry_out(tlbrentry_out)
     );
     PipelineController pipctl_0(
         .predict_miss(predict_miss),
         .real_addr(branch_info.branch_addr),
         .exp_en(exception_en),
         .e_ret(0),
-        .era(era),
+        .era(era_out),
         .trap_entry(trap_entry),
         .flush(glo_flush),
         .flush_pc(flush_pc)

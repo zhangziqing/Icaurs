@@ -32,6 +32,10 @@ module InstFetch(
             r_pc <= r_pc + 4;
     end
     
+    //TODO
+    wire [3:0] except_type;
+    wire except_type_ppi,except_type_pif,except_type_tlbr,except_type_adef;
+    assign except_type={except_type_ppi,except_type_pif,except_type_tlbr,except_type_adef};
     
     reg valid_r;
     assign valid = !rst && !flush;
@@ -39,5 +43,6 @@ module InstFetch(
     assign if_info.branch = branch;
     assign if_info.pc = pc;
     assign if_info.branch_addr = predict_pc;
+    assign if_info.except_type = except_type;
     
 endmodule:InstFetch

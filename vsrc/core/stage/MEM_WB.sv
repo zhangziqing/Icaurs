@@ -12,10 +12,7 @@ module MEM_WB(
     lsu_info_if.i lsu_info,
     //regfile input
     mem_stage_if.o wb_info,
-    lsu_info_if.o lsu_info_out,
-    //csr info
-    csr_info.i mem_csr_info,
-    csr_info.o wb_csr_info,
+    lsu_info_if.o lsu_info_out
 );
 
 wire stall_stage = !ls_valid || !ts_ready; 
@@ -46,9 +43,15 @@ begin
         wb_info.csr_wen   <=`EN_INVALID;
         wb_info.csr_waddr <=`CSR_ADDR_INVALID;
         wb_info.csr_wdata <=`DATA_INVALID;
-
-        //csr_info
-        wb_csr_info.is_ertn <= 0;
+        wb_info.except_type<=16'b0;
+        wb_info.except_pc <=`ADDR_INVALID;
+        //privilege info
+        wb_info.is_cacop        <=0;
+        wb_info.cacop_code      <=5'b0;
+        wb_info.is_tlb          <=5'b0;
+        wb_info.invtlb_op       <=5'b0;
+        wb_info.is_ertn         <=0;
+        wb_info.is_idle         <=0;
     end
     else if (stall_stage)begin
         //wb_info
@@ -69,9 +72,13 @@ begin
         lsu_info_out.st_data  <= lsu_info_out.st_data;
         wb_info.except_type   <= wb_info.except_type;
         wb_info.except_pc  <= wb_info.except_pc;
-
-        //csr_info
-        wb_csr_info.is_ertn <= wb_csr_info.is_ertn;
+        //privilege info
+        wb_info.is_cacop        <= wb_info.is_cacop;
+        wb_info.cacop_code      <= wb_info.cacop_code;
+        wb_info.is_tlb          <= wb_info.is_tlb;
+        wb_info.invtlb_op       <= wb_info.invtlb_op;
+        wb_info.is_ertn         <= wb_info.is_ertn;
+        wb_info.is_idle         <= wb_info.is_idle;
     end 
     else
     begin
@@ -93,9 +100,13 @@ begin
         lsu_info_out.st_data  <= lsu_info.st_data;
         wb_info.except_type <= mem_info.except_type;
         wb_info.except_pc   <= mem_info.except_pc;
-
-        //csr_info
-        wb_csr_info.is_ertn <= mem_csr_info.is_ertn;
+        //privilege info
+        wb_info.is_cacop        <= mem_info.is_cacop;
+        wb_info.cacop_code      <= mem_info.cacop_code;
+        wb_info.is_tlb          <= mem_info.is_tlb;
+        wb_info.invtlb_op       <= mem_info.invtlb_op;
+        wb_info.is_ertn         <= mem_info.is_ertn;
+        wb_info.is_idle         <= mem_info.is_idle;
     end
 end
 endmodule:MEM_WB

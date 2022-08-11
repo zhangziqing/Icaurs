@@ -37,16 +37,19 @@ begin
         id_info.pc <= `ADDR_INVALID;
         id_info.branch_addr <= `ADDR_INVALID;
         id_info.branch <= 0;
+        id_info.except_type<=4'b0;
     end
     if (stall_stage)begin
         id_info.pc <= id_info.pc;
         id_info.branch_addr  <= id_info.branch_addr ;
         id_info.branch  <= id_info.branch ;
+        id_info.except_type<=id_info.except_type;
     end
     else begin
         id_info.pc <= if_info.pc;
         id_info.branch_addr  <= if_info.branch_addr ;
         id_info.branch  <= if_info.branch ;
+        id_info.except_type<=if_info.except_type;
     end
 end
 endmodule:IF_ID

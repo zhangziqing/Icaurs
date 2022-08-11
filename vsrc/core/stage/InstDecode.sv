@@ -33,13 +33,13 @@ module InstDecode(
     if_stage_if.o                   if_info,
     id_stage_if.o                   id_info,
     branch_info_if.o                branch_info, 
-    csr_info.o                      id_csr_info,
 
     //branch info
     output predict_miss,
     //2.csr reg data
     input  logic [`DATA_WIDTH-1:0]    csr_data,
     output logic [`CSRNUM_WIDTH-1:0]  csr_addr,
+    input                             is_interrupt,
 
     //time 64 from csr
     input [63:0] timer_64,
@@ -65,30 +65,67 @@ module InstDecode(
     wire [`DATA_WIDTH - 1 : 0] si12_ext;
     wire [`DATA_WIDTH - 1 : 0] si20_ext;
     wire si12_ext_sign;
-    assign si12_ext_sign=is_load_store||(is_si12&&((alu_op==`ALU_ADD)||(alu_op==`ALU_SLT)||(alu_op == `ALU_SLTU)));
+    assign si12_ext_sign=is_cacop||is_load_store||(is_si12&&((alu_op==`ALU_ADD)||(alu_op==`ALU_SLT)||(alu_op == `ALU_SLTU)));
     assign si12_ext=si12_ext_sign ? {{20{si12[11]}},si12} : {20'b0,si12};
     assign si20_ext={si20,12'b0};
 
     //Privileged inst
-    wire is_ertn;
+    //1.csr
+    wire is_csr,is_csrrd,is_csrwr,is_csrxchg;
+    assign is_csr = ~|(inst[31:24]^8'b00000100);
+    assign is_csrrd = is_csr&&(~|(inst[9:5]^5'b00000));
+    assign is_csrwr = is_csr&&(~|(inst[9:5]^5'b00001));
+    assign is_csrxchg = is_csr&&(!is_csrrd)&&(!is_csrwr);
+    //2.Cache
+    wire is_cacop;
+    assign is_cacop=~|(inst[31:22]^`CACOP);
+    wire [4:0] cacop_code;
+    assign cacop_code=inst[4:0];
+    //3.TLB
+    wire is_tlbsrch,is_tlbrd,is_tlbwr,is_tlbfill,is_invtlb;
+    assign is_tlbsrch   =~|(inst^`TLBSRCH);
+    assign is_tlbrd     =~|(inst^`TLBRD);
+    assign is_tlbwr     =~|(inst^`TLBWR);
+    assign is_tlbfill   =~|(inst^`TLBFILL);
+    assign is_invtlb    =~|(inst[31:15]^`INVTLB);
+    wire [4:0] is_tlb;
+    assign is_tlb       ={is_tlbsrch,is_tlbrd,is_tlbwr,is_tlbfill,is_invtlb};
+    wire [4:0] invtlb_op;
+    assign invtlb_op=inst[4:0];
+    //4.others
+    wire is_ertn,is_idle;
     assign is_ertn=~|(inst^`ERTN);
-    //csr info
-    assign id_csr_info.is_ertn=is_ertn;
+    assign is_idle=~|(inst[31:15]^`IDLE);
 
+    assign id_info.is_cacop     =is_cacop;
+    assign id_info.cacop_code   =cacop_code;
+    assign id_info.is_tlb       =is_tlb;
+    assign id_info.invtlb_op    =invtlb_op;
+    assign id_info.is_ertn      =is_ertn;
+    assign id_info.is_idle      =is_idle;
+    
     //except
-    wire except_type_break,except_type_syscall;
     logic inst_invaild;
-    assign except_type_break=~|(inst[31:15]^`BREAK);
-    assign except_type_syscall=~|(inst[31:15]^`SYSCALL);
+    wire is_break,is_syscall;
+    assign is_break=~|(inst[31:15]^`BREAK);
+    assign is_syscall=~|(inst[31:15]^`SYSCALL);
+    //TODO
+    wire [8:0] except_type;
+    logic except_type_ipe,except_type_ine,except_type_brk,except_type_sys,except_type_int;
+    assign except_type_ine=inst_invaild;
+    assign except_type_brk=is_break;
+    assign except_type_sys=is_syscall;
+    assign except_type_int=is_interrupt;
+    assign except_type={except_type_ipe,except_type_ine,except_type_brk,except_type_sys,if_info.except_type,except_type_int};
+    assign id_info.except_type=except_type;
     assign id_info.except_pc=if_info.pc;
-    assign id_info.except_type={16'b0,except_type_break,except_type_syscall,inst_invaild,13'b0};
+    
 
     //operation inst
-    wire is_3r,is_ui5,is_si12,is_csr,is_rdcnt;
-    assign is_3r = (~|(inst[31:22]^10'b0000000000)) && (inst[21]||inst[20]) && (!except_type_break) && (!except_type_syscall);
+    wire is_3r,is_ui5,is_si12,is_rdcnt;
+    assign is_3r = (~|(inst[31:22]^10'b0000000000)) && (inst[21]||inst[20]) && (!is_break) && (!is_syscall);
     assign is_ui5 = (~|(inst[31:20]^12'b000000000100)) && (~|(inst[17:15]^3'b001));
     assign is_si12 = ~|(inst[31:25]^7'b0000001);
-    assign is_csr = ~|(inst[31:24]^8'b00000100);
     assign is_rdcnt=~|(inst[31:11]^21'b000000000000000001100);
 
     //rdcnt
@@ -96,12 +133,6 @@ module InstDecode(
     assign is_rdcntid=is_rdcnt&&(inst[10]==1'b0)&&(inst[4:0]==5'b00000);
     assign is_rdcntvl=is_rdcnt&&(inst[10]==1'b0)&&(inst[9:5]==5'b00000);
     assign is_rdcntvh=is_rdcnt&&(inst[10]==1'b1)&&(inst[9:5]==5'b00000);
-
-    //csr inst
-    wire is_csrrd,is_csrwr,is_csrxchg;
-    assign is_csrrd = is_csr&&(~|(inst[9:5]^5'b00000));
-    assign is_csrwr = is_csr&&(~|(inst[9:5]^5'b00001));
-    assign is_csrxchg = is_csr&&(!is_csrrd)&&(!is_csrwr);
 
     wire is_si20,is_lu12i,is_pcaddu12i;
     assign is_si20=~|(inst[31:28]^4'b0001);
@@ -288,7 +319,7 @@ module InstDecode(
             r2_en=1;
             r2_addr=rd_addr;
         end
-        else if(except_type_break||except_type_syscall)
+        else if(is_break||is_syscall)
         begin
             r1_en=0;
             r1_addr=5'b0;
@@ -296,6 +327,27 @@ module InstDecode(
             r2_addr=5'b0;
         end
         else if(is_rdcnt)
+        begin
+            r1_en=0;
+            r1_addr=5'b0;
+            r2_en=0;
+            r2_addr=5'b0;
+        end
+        else if(is_cacop)
+        begin
+            r1_en=1;
+            r1_addr=rj_addr;
+            r2_en=0;
+            r2_addr=5'b0;
+        end
+        else if(is_tlbsrch||is_tlbrd||is_tlbwr||is_tlbfill||is_invtlb)
+        begin
+            r1_en=is_invtlb;
+            r1_addr=rj_addr;
+            r2_en=is_invtlb;
+            r2_addr=rk_addr;
+        end
+        else if(is_ertn||is_idle)
         begin
             r1_en=0;
             r1_addr=5'b0;
@@ -366,7 +418,7 @@ module InstDecode(
             id_info.rw_addr=rd_addr;
             inst_invaild=0;
         end
-        else if(except_type_break||except_type_syscall)
+        else if(is_break||is_syscall)
         begin
             oprand1 = 0;
             oprand2 = 0;
@@ -382,6 +434,33 @@ module InstDecode(
             id_info.rw_en = 1;
             id_info.ex_op = `ALU_OR;
             id_info.rw_addr=is_rdcntid?rj_addr:rd_addr;
+            inst_invaild=0;
+        end
+        else if(is_cacop)
+        begin
+            oprand1 = 0;
+            oprand2 = si12_ext;
+            id_info.rw_en = 0;
+            id_info.ex_op = `ALU_ADD;
+            id_info.rw_addr=rd_addr;
+            inst_invaild=0;
+        end
+        else if(is_tlbsrch||is_tlbrd||is_tlbwr||is_tlbfill||is_invtlb)
+        begin
+            oprand1 = is_invtlb?r1_data:32'b0;
+            oprand2 = is_invtlb?r2_data:32'b0;
+            id_info.rw_en = 0;
+            id_info.ex_op = `ALU_INVALID;
+            id_info.rw_addr=rd_addr;
+            inst_invaild=0;
+        end
+        else if(is_ertn||is_idle)
+        begin
+            oprand1 = 0;
+            oprand2 = 0;
+            id_info.rw_en = 0;
+            id_info.ex_op = `ALU_INVALID;
+            id_info.rw_addr=rd_addr;
             inst_invaild=0;
         end
         else 

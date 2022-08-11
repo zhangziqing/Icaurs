@@ -19,107 +19,182 @@ module WriteBack (
     output [`REG_WIDTH - 1  : 0] debug0_wb_rf_wnum,
     output                       debug0_wb_rf_wen,
 
-    //csr info
-    csr_info.i wb_csr_info,
-    csr_info.o to_csr_info,
     //to csr
     output          is_except,
+    output          is_ertn,
     output [31:0]   epc,
     output [5:0]    Ecode,
     output [8:0]    EsubCode,
-    output           is_va_error,
-    output [31:0]    va_error_in
+    output          is_va_error,
+    output [31:0]   va_error_in,
+    output          etype_tlb,
+    output [18:0]   etype_tlb_vppn,
+    output          is_tlbsrch,
+    output          tlbsrch_found,
+    output [4:0]    tlbsrch_index
 );
     //to csr
-    wire etype=mem_info.except_type;
-    assign to_csr_info.is_ertn=wb_csr_info.is_ertn;
-    assign epc=mem_info.except_pc;
+    wire etype;
+    assign etype        = mem_info.except_type;
+    assign is_except    = (etype!=16'b0);
+    assign is_ertn      = mem_info.is_ertn;
+    assign epc          = mem_info.except_pc;
+    assign is_tlbsrch   = mem_info.is_tlb[4];
+
+    //TODO
+    logic [31:0] va_error;
     always @(*)
     begin
         if(etype[0]==1'b1)
         begin
-            Ecode=`ecode_int;
-            EsubCode=9'b0;
+            Ecode           =`ecode_int;
+            EsubCode        =9'b0;
+            is_va_error     =1'b0;
+            va_error_in     =32'b0;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
         else if(etype[1]==1'b1)
         begin
-            Ecode=`ecode_adef;
-            EsubCode=9'b0;
+            Ecode           =`ecode_adef;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =mem_info.pc;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
         else if(etype[2]==1'b1)
         begin
-            Ecode=`ecode_tlbr;
-            EsubCode=9'b0;
+            Ecode           =`ecode_tlbr;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =mem_info.pc;
+            etype_tlb       =1'b1;
+            etype_tlb_vppn  =mem_info.pc[31:13];
         end
         else if(etype[3]==1'b1)
         begin
-            Ecode=`ecode_pif;
-            EsubCode=9'b0;
+            Ecode           =`ecode_pif;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =mem_info.pc;
+            etype_tlb       =1'b1;
+            etype_tlb_vppn  =mem_info.pc[31:13];
         end
         else if(etype[4]==1'b1)
         begin
-            Ecode=`ecode_ppi;
-            EsubCode=9'b0;
+            Ecode           =`ecode_ppi;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =mem_info.pc;
+            etype_tlb       =1'b1;
+            etype_tlb_vppn  =mem_info.pc[31:13];
         end
         else if(etype[5]==1'b1)
         begin
-            Ecode=`ecode_sys;
-            EsubCode=9'b0;
+            Ecode           =`ecode_sys;
+            EsubCode        =9'b0;
+            is_va_error     =1'b0;
+            va_error_in     =32'b0;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
         else if(etype[6]==1'b1)
         begin
-            Ecode=`ecode_brk;
-            EsubCode=9'b0;
+            Ecode           =`ecode_brk;
+            EsubCode        =9'b0;
+            is_va_error     =1'b0;
+            va_error_in     =32'b0;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
         else if(etype[7]==1'b1)
         begin
-            Ecode=`ecode_ine;
-            EsubCode=9'b0;
+            Ecode           =`ecode_ine;
+            EsubCode        =9'b0;
+            is_va_error     =1'b0;
+            va_error_in     =32'b0;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
         else if(etype[8]==1'b1)
         begin
-            Ecode=`ecode_ipe;
-            EsubCode=9'b0;
+            Ecode           =`ecode_ipe;
+            EsubCode        =9'b0;
+            is_va_error     =1'b0;
+            va_error_in     =32'b0;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
         else if(etype[9]==1'b1)
         begin
-            Ecode=`ecode_ale;
-            EsubCode=9'b0;
+            Ecode           =`ecode_ale;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =va_error;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
         else if(etype[10]==1'b1)
         begin
-            Ecode=`ecode_adem;
-            EsubCode=9'b1;
+            Ecode           =`ecode_adem;
+            EsubCode        =9'b1;
+            is_va_error     =1'b1;
+            va_error_in     =va_error;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
         else if(etype[11]==1'b1)
         begin
-            Ecode=`ecode_tlbr;
-            EsubCode=9'b0;
+            Ecode           =`ecode_tlbr;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =va_error;
+            etype_tlb       =1'b1;
+            etype_tlb_vppn  =va_error[31:13];
         end
         else if(etype[12]==1'b1)
         begin
-            Ecode=`ecode_pme;
-            EsubCode=9'b0;
+            Ecode           =`ecode_pme;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =va_error;
+            etype_tlb       =1'b1;
+            etype_tlb_vppn  =va_error[31:13];
         end
         else if(etype[13]==1'b1)
         begin
-            Ecode=`ecode_ppi;
-            EsubCode=9'b0;
+            Ecode           =`ecode_ppi;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =va_error;
+            etype_tlb       =1'b1;
+            etype_tlb_vppn  =va_error[31:13];
         end
         else if(etype[14]==1'b1)
         begin
-            Ecode=`ecode_pis;
-            EsubCode=9'b0;
+            Ecode           =`ecode_pis;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =va_error;
         end
         else if(etype[15]==1'b1)
         begin
-            Ecode=`ecode_pil;
-            EsubCode=9'b0;
+            Ecode           =`ecode_pil;
+            EsubCode        =9'b0;
+            is_va_error     =1'b1;
+            va_error_in     =va_error;
+            etype_tlb       =1'b1;
+            etype_tlb_vppn  =va_error[31:13];
         end
         else
         begin
-            Ecode=6'b0;
-            EsubCode=9'b0;
+            Ecode           =6'b0;
+            EsubCode        =9'b0;
+            is_va_error     =1'b0;
+            va_error_in     =32'b0;
+            etype_tlb       =1'b0;
+            etype_tlb_vppn  =19'b0;
         end
     end
 

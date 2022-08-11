@@ -11,10 +11,7 @@ module EX_MEM(
     //ex output
     ex_stage_if.i ex_info,
     //mem input
-    ex_stage_if.o mem_info,
-    //csr info
-    csr_info.i ex_csr_info,
-    csr_info.o mem_csr_info
+    ex_stage_if.o mem_info
 );
 
 wire stall_stage = !ls_valid || !ts_ready; 
@@ -46,11 +43,15 @@ begin
         mem_info.csr_waddr<=`CSR_ADDR_INVALID;
         mem_info.csr_wdata<=`DATA_INVALID;
         //mem_except_info
-        mem_info.except_type <=`DATA_INVALID;
+        mem_info.except_type <= 10'b0;
         mem_info.except_pc   <=`ADDR_INVALID;
-
-        //csr_info
-        mem_csr_info.is_ertn    <= 0;
+        //privilege info
+        mem_info.is_cacop        <=0;
+        mem_info.cacop_code      <=5'b0;
+        mem_info.is_tlb          <=5'b0;
+        mem_info.invtlb_op       <=5'b0;
+        mem_info.is_ertn         <=0;
+        mem_info.is_idle         <=0;
     end
     else if (stall_stage)
     begin
@@ -69,9 +70,13 @@ begin
         //mem_except_info
         mem_info.except_type <= mem_info.except_type;
         mem_info.except_pc   <= mem_info.except_pc;
-
-        //csr_info
-        mem_csr_info.is_ertn    <= mem_csr_info.is_ertn;
+        //privilege info
+        mem_info.is_cacop        <= mem_info.is_cacop;
+        mem_info.cacop_code      <= mem_info.cacop_code;
+        mem_info.is_tlb          <= mem_info.is_tlb;
+        mem_info.invtlb_op       <= mem_info.invtlb_op;
+        mem_info.is_ertn         <= mem_info.is_ertn;
+        mem_info.is_idle         <= mem_info.is_idle;
     end
     else
     begin
@@ -90,9 +95,13 @@ begin
         //mem_except_info
         mem_info.except_type <= ex_info.except_type;
         mem_info.except_pc   <= ex_info.except_pc;
-
-        //csr_info
-        mem_csr_info.is_ertn    <= ex_csr_info.is_ertn;
+        //privilege info
+        mem_info.is_cacop        <= ex_info.is_cacop;
+        mem_info.cacop_code      <= ex_info.cacop_code;
+        mem_info.is_tlb          <= ex_info.is_tlb;
+        mem_info.invtlb_op       <= ex_info.invtlb_op;
+        mem_info.is_ertn         <= ex_info.is_ertn;
+        mem_info.is_idle         <= ex_info.is_idle;
     end
 end
 endmodule:EX_MEM
