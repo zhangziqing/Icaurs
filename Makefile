@@ -21,7 +21,8 @@ VER_INCLUDE = vsrc \
 			vsrc/core/ \
 			vsrc/core/stage/ \
 			vsrc/core/utils/ \
-			vsrc/core/bpu/
+			vsrc/core/bpu/ \
+			vsrc/include/
 VER_FLAGS = $(addprefix -I,$(VER_INCLUDE)) --cc --exe --build --trace \
 			--top Core --prefix Vtop -Mdir $(BUILD_DIR)
 

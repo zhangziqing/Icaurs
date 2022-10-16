@@ -22,7 +22,6 @@ module WriteBack (
     //to csr
     output          is_except,
     output          is_ertn,
-    output [31:0]   epc,
     output [5:0]    Ecode,
     output [8:0]    EsubCode,
     output          is_va_error,
@@ -34,7 +33,7 @@ module WriteBack (
     output [4:0]    tlbsrch_index
 );
     //to csr
-    wire etype;
+    // wire etype;
     assign etype        = mem_info.except_type;
     assign is_except    = (etype!=16'b0);
     assign is_ertn      = mem_info.is_ertn;

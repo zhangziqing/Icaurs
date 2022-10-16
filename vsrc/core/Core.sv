@@ -15,7 +15,7 @@ module Core(
     output [31:0] debug0_wb_pc,
     output [ 3:0] debug0_wb_rf_wen,
     output [ 4:0] debug0_wb_rf_wnum,
-    output [31:0] debug0_wb_rf_wdata
+    output [31:0] debug0_wb_rf_wdata,
 );
     logic [`ADDR_WIDTH - 1 : 0] pc;//if_pc
     logic [`ADDR_WIDTH - 1 : 0] flush_pc;
