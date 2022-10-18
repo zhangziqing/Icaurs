@@ -325,11 +325,14 @@ module Core(
         .rw_en(rw_en),
         .rw_addr(rw_addr),
         .rw_data(rw_data),
+        .csr_wen(csr_wen),
+        .csr_waddr(csr_waddr),
+        .csr_wdata(csr_wdata),
         .lsu_info(lsu_info_wb),
         .debug0_wb_rf_wdata(debug0_wb_rf_wdata),
         .debug0_wb_rf_wnum(debug0_wb_rf_wnum),
         .debug0_wb_rf_wen(debug0_wb_rf_wen),
-        .debug0_wb_pc(debug0_wb_pc)
+        .debug0_wb_pc(debug0_wb_pc),
         .is_except(is_except),
         .is_ertn(is_ertn),
         .epc(epc),
@@ -394,6 +397,7 @@ module Core(
         .tlbelo1_in(tlbelo1_in),
         .asid_in(asid_in),
         //csr reg out
+        .trap_entry(trap_entry),
         .era_out(era_out),
         .dmw0_out(dmw0_out),
         .dmw1_out(dmw1_out),
