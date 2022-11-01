@@ -1,5 +1,7 @@
 `include "width_param.sv"
 `include "operation.sv"
+`include "div.sv"
+`include "mul.sv"
 
 module Execute(
     //stage info
@@ -94,9 +96,30 @@ module MDU(
     // output logic vaild
 );
     logic [63: 0 ] mulres;
-    wire  [63: 0 ] umul = oprand1 * oprand2;
-    wire  [63: 0 ] smul = $signed(oprand1) * $signed(oprand2);
-    assign mulres = op[4] ? umul : smul; 
+    logic [31: 0 ] divres;
+    logic [31: 0 ] remres;
+    wire sig = op[4] ? 0 : 1;
+
+
+ //   wire  [63: 0 ] umul = oprand1 * oprand2;
+ //   wire  [63: 0 ] smul = $signed(oprand1) * $signed(oprand2);
+ //   assign mulres = op[4] ? umul : smul; 
+
+    mul mult(
+        .mul_signed(sig),
+        .x(oprand1),
+        .y(oprand2),
+        .result(mulres)
+   );
+   div di(
+         .x(oprand1),
+         .y(oprand2),
+         .sig(sig),
+         .ready(1),
+         .quot(divres),
+         .rem(remres)
+     );
+
     always_comb
         case(op)
             `ALU_MUL  : 
@@ -107,10 +130,14 @@ module MDU(
                 begin
                     result=mulres[63:32];
                 end
-            `ALU_DIVU : result = oprand1 / oprand2;
-            `ALU_MODU : result = oprand1 % oprand2;
-            `ALU_DIV  : result = $signed(oprand1) / $signed(oprand2);
-            `ALU_MOD  : result = $signed(oprand1) % $signed(oprand2);
+            `ALU_DIVU : result = divres;
+            `ALU_MODU : result = remres;
+            `ALU_DIV  : result = divres;
+            `ALU_MOD  : result = remres;
+         //   `ALU_DIVU : result = oprand1/oprand2;
+         //   `ALU_MODU : result = oprand1%oprand2;
+         //   `ALU_DIV  : result = oprand1/oprand2;
+         //   `ALU_MOD  : result = oprand1%oprand2;
             default:result = 0;
         endcase
 
