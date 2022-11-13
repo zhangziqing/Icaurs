@@ -54,9 +54,14 @@ module core_top(
 );
 
     sram_if iram,dram;
+    axi4_if i_axi_port(
+        .ACLK(aclk),
+        .ARESETn(aresetn)
+    );
     Core core_inst(
         .iram(iram),
         .dram(dram),
+	.AXI_icache(i_axi_port),
         .clock(aclk),
         .reset(!aresetn),
         .hw_int(0),
@@ -81,10 +86,7 @@ module core_top(
 	wire     [1:0]	            m_RRESP;
     wire                        m_RLAST;
 	wire     [USER_WIDTH-1:0]	m_RUSER;
-    axi4_if i_axi_port(
-        .ACLK(aclk),
-        .ARESETn(aresetn)
-    );
+
     axi4_if d_axi_port(
         .ACLK(aclk),
         .ARESETn(aresetn)
