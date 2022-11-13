@@ -47,6 +47,8 @@ module CSR(
     input [31:0]    tlbelo0_in,
     input [31:0]    tlbelo1_in,
     input [9:0]     asid_in,
+    //to if
+    output          disable_cache,
 
     output  [`DATA_WIDTH - 1   : 0 ]    trap_entry,
     //output csr reg info
@@ -61,7 +63,8 @@ module CSR(
     output  [`DATA_WIDTH - 1   : 0 ]    pgdl_out,
     output  [`DATA_WIDTH - 1   : 0 ]    pgdh_out,
     output  [`DATA_WIDTH - 1   : 0 ]    pgd_out,
-    output  [`DATA_WIDTH - 1   : 0 ]    tlbrentry_out
+    output  [`DATA_WIDTH - 1   : 0 ]    tlbrentry_out,
+    output  [`DATA_WIDTH - 1   : 0 ]    crmd_out
 );
     logic [`DATA_WIDTH-1:0] csr_crmd;
     logic [`DATA_WIDTH-1:0] csr_prmd;
@@ -107,7 +110,8 @@ module CSR(
     assign pgdl_out     =csr_pgdl;
     assign pgdh_out     =csr_pgdh;
     assign pgd_out      =csr_pgd;
-    assign tlbrentry_out=csr_tlbrentry;    
+    assign tlbrentry_out=csr_tlbrentry;   
+    assign crmd_out     =csr_crmd; 
 
     //interrupt
     assign is_interrupt=csr_crmd[2]&(|(csr_estat[12:0]&csr_ecfg[12:0]));
@@ -116,6 +120,9 @@ module CSR(
     wire tlbrd_vaild,tlbrd_invaild;
     assign tlbrd_vaild=is_tlbrd&&!tlbidx_in[31];
     assign tlbrd_invaild=is_tlbrd&&tlbidx_in[31];
+    
+    //TODO
+    assign disable_cache=1'b0;
     
     //timer 64
     always @(posedge clk)

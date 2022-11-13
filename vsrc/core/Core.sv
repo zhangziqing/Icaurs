@@ -54,6 +54,7 @@ module Core(
     logic [31:0]    tlbelo0_in;
     logic [31:0]    tlbelo1_in;
     logic [9:0]     asid_in;
+    logic           disable_cache;
 
     logic  [`DATA_WIDTH - 1   : 0 ]    era_out;
     logic  [`DATA_WIDTH - 1   : 0 ]    dmw0_out;
@@ -67,8 +68,39 @@ module Core(
     logic  [`DATA_WIDTH - 1   : 0 ]    pgdh_out;
     logic  [`DATA_WIDTH - 1   : 0 ]    pgd_out;
     logic  [`DATA_WIDTH - 1   : 0 ]    tlbrentry_out;
+    logic  [`DATA_WIDTH - 1   : 0 ]    crmd_out;
 
+    //IF<->MMU
+    logic [31:0]    inst_addr;
+    logic           dmw0_en;
+    logic           dmw1_en;
+    logic [ 7:0]    inst_index;
+    logic [19:0]    inst_tag;
+    logic [ 3:0]    inst_offest;
+
+    //if<->icache
+    logic                               inst_addr_ok;
+    logic                               inst_data_ok;
+    logic                               icache_miss;
+    logic                               inst_valid;
+    logic                               inst_uncache_en;
+    logic  [`DATA_WIDTH - 1   : 0 ]     inst_rdata;
     
+    //AXI<->cache
+    logic         rd_req    ;
+    logic [  2:0] rd_type   ;
+    logic [ 31:0] rd_addr   ;
+    logic         rd_rdy    ;
+    logic         ret_valid ;
+    logic         ret_last  ;
+    logic [ 31:0] ret_data  ;
+    logic         wr_req    ;
+    logic [  2:0] wr_type   ;
+    logic [ 31:0] wr_addr   ;
+    logic [  3:0] wr_wstrb  ;
+    logic [127:0] wr_data   ;
+    logic         wr_rdy    ;
+
     logic predict_branch;
 
     logic [4 : 0] glo_flush;
@@ -90,7 +122,67 @@ module Core(
         .pc(pc),
         .valid(if_valid),
         .ns_ready(id_ready),
-        .if_info(if_info)
+        .if_info(if_info),
+        //from csr
+        .csr_crmd(crmd_out),
+        .csr_dmw0(dmw0_out),
+        .csr_dmw1(dmw1_out),
+        .disable_cache(disable_cache),
+        //to MMU
+        .inst_addr(inst_addr),
+        .dmw0_en(dmw0_en),
+        .dmw1_en(dmw1_en),
+        //inst cache
+        .inst_addr_ok(inst_addr_ok),
+        .inst_data_ok(inst_data_ok),
+        .inst_rdata(inst_rdata),
+        .icache_miss(icache_miss),
+        .inst_valid(inst_valid),
+        .inst_uncache_en(inst_uncache_en)
+    );
+    cache icache(
+        .clk(clock),
+        .reset(reset),
+        //to from cpu
+        .valid(inst_valid),
+        .op(1'b0),
+        .index(inst_index),
+        .tag(inst_tag),
+        .offset(inst_offest),
+        .wstrb(4'b0),
+        .wdata(32'b0),
+        .addr_ok(inst_addr_ok),
+        .data_ok(inst_data_ok),
+        .rdata(inst_rdata),
+        // to from axi  
+        .rd_req   (rd_req),
+        .rd_type  (rd_type),
+        .rd_addr  (rd_addr),
+        .rd_rdy   (rd_rdy),
+        .ret_valid(ret_valid),
+        .ret_last (ret_last),
+        .ret_data (ret_data),
+        .wr_req   (wr_req),
+        .wr_type  (wr_type),
+        .wr_addr  (wr_addr),
+        .wr_wstrb (wr_wstrb),
+        .wr_data  (wr_data),
+        .wr_rdy   (wr_rdy)
+    );
+    MMU mmu(
+        .clk(clock),
+        //inst addr trans from IF
+        .inst_vaddr(inst_addr),
+        .inst_dmw0_en(dmw0_en),
+        .inst_dmw1_en(dmw1_en),
+        .inst_index(inst_index),
+        .inst_tag(inst_tag),
+        .inst_offest(inst_offest),
+        //from csr
+        .csr_crmd_da(crmd_out[3]),
+        .csr_crmd_pg(crmd_out[4]),
+        .csr_dmw0(dmw0_out),
+        .csr_dmw1(dmw1_out)
     );
     BPU bpu_0(
         .clk(clock),
@@ -396,6 +488,8 @@ module Core(
         .tlbelo0_in(tlbelo0_in),
         .tlbelo1_in(tlbelo1_in),
         .asid_in(asid_in),
+        //to if
+        .disable_cache(disable_cache),
         //csr reg out
         .trap_entry(trap_entry),
         .era_out(era_out),
