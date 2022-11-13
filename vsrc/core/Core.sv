@@ -11,6 +11,7 @@ module Core(
     input reset,
     sram_if.m iram,
     sram_if.m dram,
+    axi4_if.m AXI_icache,
     input  [8 : 0] hw_int,
     output [31:0] debug0_wb_pc,
     output [ 3:0] debug0_wb_rf_wen,
@@ -87,19 +88,9 @@ module Core(
     logic  [`DATA_WIDTH - 1   : 0 ]     inst_rdata;
     
     //AXI<->cache
-    logic         rd_req    ;
+
     logic [  2:0] rd_type   ;
-    logic [ 31:0] rd_addr   ;
-    logic         rd_rdy    ;
-    logic         ret_valid ;
-    logic         ret_last  ;
-    logic [ 31:0] ret_data  ;
-    logic         wr_req    ;
     logic [  2:0] wr_type   ;
-    logic [ 31:0] wr_addr   ;
-    logic [  3:0] wr_wstrb  ;
-    logic [127:0] wr_data   ;
-    logic         wr_rdy    ;
 
     logic predict_branch;
 
@@ -155,19 +146,19 @@ module Core(
         .data_ok(inst_data_ok),
         .rdata(inst_rdata),
         // to from axi  
-        .rd_req   (rd_req),
+        .rd_req   (AXI_icache.ARVALID),
         .rd_type  (rd_type),
-        .rd_addr  (rd_addr),
-        .rd_rdy   (rd_rdy),
-        .ret_valid(ret_valid),
-        .ret_last (ret_last),
-        .ret_data (ret_data),
-        .wr_req   (wr_req),
+        .rd_addr  (AXI_icache.ARADDR),
+        .rd_rdy   (AXI_icache.ARREADY),
+        .ret_valid(AXI_icache.RVALID),
+        .ret_last (AXI_icache.RLAST),
+        .ret_data (AXI_icache.RDATA),
+        .wr_req   (AXI_icache.AWVALID),
         .wr_type  (wr_type),
-        .wr_addr  (wr_addr),
-        .wr_wstrb (wr_wstrb),
-        .wr_data  (wr_data),
-        .wr_rdy   (wr_rdy)
+        .wr_addr  (AXI_icache.AWADDR),
+        .wr_wstrb (AXI_icache.WSTRB),
+        .wr_data  (AXI_icache.WDATA),
+        .wr_rdy   (AXI_icache.WREADY)
     );
     MMU mmu(
         .clk(clock),
