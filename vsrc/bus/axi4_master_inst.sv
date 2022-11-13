@@ -18,7 +18,7 @@ reg cancel_lock;
 
 /// read channels
 assign axi4_master.ARREGION = 4'b0000;
-assign axi4_master.ARLEN = 0;
+assign axi4_master.ARLEN = 8'b11;
 assign axi4_master.ARSIZE = 3'b010;
 assign axi4_master.ARBURST = 2'b01;
 assign axi4_master.ARLOCK  = 0;
@@ -56,6 +56,11 @@ always_ff @(posedge axi4_master.ACLK)begin
                 if(axi4_master.RVALID && axi4_master.RLAST)begin
                         ram_rd_valid <=1'b1;
                         read_state <= cancel_op ? STATE_IDLE_R : STATE_RREPAIR;
+                        inst_sram_slave.sram_rd_data <= axi4_master.RDATA;
+                    end
+                else if(axi4_master.RVALID)begin
+                        ram_rd_valid <=1'b1;
+                        read_state <= cancel_op ? STATE_RDATA : STATE_RREPAIR;
                         inst_sram_slave.sram_rd_data <= axi4_master.RDATA;
                     end
                 else
