@@ -61,7 +61,7 @@ module core_top(
     Core core_inst(
         .iram(iram),
         .dram(dram),
-	.AXI_icache(i_axi_port),
+	    .AXI_icache(i_axi_port),
         .clock(aclk),
         .reset(!aresetn),
         .hw_int(0),

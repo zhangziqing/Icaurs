@@ -83,11 +83,13 @@ module Core(
     logic                               inst_addr_ok;
     logic                               inst_data_ok;
     logic                               icache_miss;
-    logic                               inst_valid;
+    logic                               icache_valid;
     logic                               inst_uncache_en;
     logic  [`DATA_WIDTH - 1   : 0 ]     inst_rdata;
     
-    //AXI<->cache
+    //read inst
+    logic  [`ADDR_WIDTH - 1   : 0 ]     inst;
+    logic                               inst_valid;
 
     logic [  2:0] rd_type   ;
     logic [  2:0] wr_type   ;
@@ -128,14 +130,18 @@ module Core(
         .inst_data_ok(inst_data_ok),
         .inst_rdata(inst_rdata),
         .icache_miss(icache_miss),
+        .icache_valid(icache_valid),
+        .inst_uncache_en(inst_uncache_en),
+        //read inst
+        .iram(iram),
         .inst_valid(inst_valid),
-        .inst_uncache_en(inst_uncache_en)
+        .inst(inst)
     );
     cache icache(
         .clk(clock),
         .reset(reset),
         //to from cpu
-        .valid(inst_valid),
+        .valid(icache_valid),
         .op(1'b0),
         .index(inst_index),
         .tag(inst_tag),
@@ -186,31 +192,31 @@ module Core(
     wire [`INST_WIDTH - 1 : 0] inst;
 
     // always_comb dpi_pmem_fetch(inst_if, pc, !reset);
-    assign iram.sram_rd_en = if_valid & if_ready;
-    assign iram.sram_rd_addr = pc;
-    assign inst = iram.sram_rd_data;
-    assign iram.sram_cancel_rd = 0;
-    wire iram_data_valid = iram.sram_rd_valid;
+    // assign iram.sram_rd_en = if_valid & if_ready;
+    // assign iram.sram_rd_addr = pc;
+    // assign inst = iram.sram_rd_data;
+    // assign iram.sram_cancel_rd = 0;
+    // wire iram_data_valid = iram.sram_rd_valid;
 
-    assign iram.sram_wr_en = 0;
-    assign iram.sram_wr_addr = 0;
-    assign iram.sram_wr_data = 0;
-    assign iram.sram_wr_mask = 0;
+    // assign iram.sram_wr_en = 0;
+    // assign iram.sram_wr_addr = 0;
+    // assign iram.sram_wr_data = 0;
+    // assign iram.sram_wr_mask = 0;
     
-    logic [`ADDR_WIDTH - 1 : 0] id_pc; 
+    //logic [`ADDR_WIDTH - 1 : 0] id_pc; 
+    //logic bypass_valid1,bypass_valid2;
+    //logic inst_valid_sm;
+    
+    // always @(posedge clock)begin
+    //     if (reset)
+    //         inst_valid_sm <= 0;
+    //     else if (reset || if_flush || (if_valid && id_ready))
+    //         inst_valid_sm <= 0;
+    //     else if(iram_data_valid)
+    //         inst_valid_sm <= 1;
+    // end
+    // wire inst_valid = inst_valid_sm ? inst_valid_sm : iram_data_valid;
     logic load_flag1,load_flag2;
-    logic bypass_valid1,bypass_valid2;
-    logic inst_valid_sm;
-    
-    always @(posedge clock)begin
-        if (reset)
-            inst_valid_sm <= 0;
-        else if (reset || if_flush || (if_valid && id_ready))
-            inst_valid_sm <= 0;
-        else if(iram_data_valid)
-            inst_valid_sm <= 1;
-    end
-    wire inst_valid = inst_valid_sm ? inst_valid_sm : iram_data_valid;
     assign id_stall = (~inst_valid) | load_flag1 | load_flag2;
     IF_ID if_id(
         .rst(reset),
