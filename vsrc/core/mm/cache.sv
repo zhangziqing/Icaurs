@@ -29,20 +29,6 @@ module cache (
     input          wr_rdy
 );
 
-logic         rd_req    ;
-logic [  2:0] rd_type   ;
-logic [ 31:0] rd_addr   ;
-logic         rd_rdy    ;
-logic         ret_valid ;
-logic         ret_last  ;
-logic [ 31:0] ret_data  ;
-logic         wr_req    ;
-logic [  2:0] wr_type   ;
-logic [ 31:0] wr_addr   ;
-logic [  3:0] wr_wstrb  ;
-logic [127:0] wr_data   ;
-logic         wr_rdy    ;
-
 /*-------------------- MAIN FSM --------------------*/
 
 localparam MAIN_IDLE    = 5'b00001; 
