@@ -60,7 +60,7 @@ module InstFetch(
     assign except_type={except_type_ppi,except_type_pif,except_type_tlbr,except_type_adef};
     
     //reg valid_r;
-    assign valid = !rst && !flush && (inst_data_ok || iram.sram_rd_valid);
+    assign valid = !rst && !flush ;
     assign pc = r_pc;
     assign if_info.branch = branch;
     assign if_info.pc = pc;
@@ -79,7 +79,7 @@ module InstFetch(
     assign dmw1_en = ((csr_dmw1[0] && csr_crmd_plv == 2'd0) || (csr_dmw1[3] && csr_crmd_plv == 2'd3)) && (csr_dmw1[31:29] == r_pc[31:29]);
 
     //icache
-    assign icache_valid = !inst_uncache_en;
+    assign icache_valid = !inst_uncache_en && valid;
     //1.judge uncache
     assign da_mode = csr_crmd_da && !csr_crmd_pg;
     assign inst_uncache_en = (da_mode && (csr_datf == 2'b0))                 ||
@@ -101,7 +101,7 @@ module InstFetch(
     //judge inst valid
     always @(posedge clk)
     begin
-            if(rst||flush||(valid && id_ready))
+            if(rst||flush||(valid && ns_ready))
             begin
                 inst_valid <= 0;
             end
@@ -114,6 +114,7 @@ module InstFetch(
                 inst_valid <= 1;
             end
     end
-    assign inst = inst_data_ok ? inst_rdata : iram.sram_rd_data;
+    assign inst =   !inst_valid ? inst :
+                    inst_data_ok ? inst_rdata : iram.sram_rd_data;
 
 endmodule:InstFetch
