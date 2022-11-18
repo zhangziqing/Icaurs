@@ -11,7 +11,8 @@ module Core(
     input reset,
     sram_if.m iram,
     sram_if.m dram,
-    axi4_if.m AXI_icache,
+    cache_if.m icachePort,
+    output sram_cancel_rd,
     input  [8 : 0] hw_int,
     output [31:0] debug0_wb_pc,
     output [ 3:0] debug0_wb_rf_wen,
@@ -152,20 +153,21 @@ module Core(
         .data_ok(inst_data_ok),
         .rdata(inst_rdata),
         // to from axi  
-        .rd_req   (AXI_icache.ARVALID),
-        .rd_type  (rd_type),
-        .rd_addr  (AXI_icache.ARADDR),
-        .rd_rdy   (AXI_icache.ARREADY),
-        .ret_valid(AXI_icache.RVALID),
-        .ret_last (AXI_icache.RLAST),
-        .ret_data (AXI_icache.RDATA),
-        .wr_req   (AXI_icache.AWVALID),
-        .wr_type  (wr_type),
-        .wr_addr  (AXI_icache.AWADDR),
-        .wr_wstrb (AXI_icache.WSTRB),
-        .wr_data  (AXI_icache.WDATA),
-        .wr_rdy   (AXI_icache.WREADY)
+        .rd_req   (icachePort.rd_req),
+        .rd_type  (icachePort.rd_type),
+        .rd_addr  (icachePort.rd_addr),
+        .rd_rdy   (icachePort.rd_rdy),
+        .ret_valid(icachePort.ret_valid),
+        .ret_last (icachePort.ret_last),
+        .ret_data (icachePort.ret_data),
+        .wr_req   (icachePort.wr_req),
+        .wr_type  (icachePort.wr_type),
+        .wr_addr  (icachePort.wr_addr),
+        .wr_wstrb (icachePort.wr_wstrb),
+        .wr_data  (icachePort.wr_data),
+        .wr_rdy   (icachePort.wr_rdy)
     );
+    assign sram_cancel_rd = 0;
     MMU mmu(
         .clk(clock),
         //inst addr trans from IF
