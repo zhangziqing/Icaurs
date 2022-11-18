@@ -59,7 +59,7 @@ module core_top(
     Core core_inst(
         .iram(iram),
         .dram(dram),
-	.cache_if(icachePort),
+	.icachePort(icachePort),
         .sram_cancel_rd(sram_cancel_rd),
         .clock(aclk),
         .reset(!aresetn),
