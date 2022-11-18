@@ -1,6 +1,7 @@
 module axi4_master_inst(
     axi4_if.m axi4_master,
-    sram_if.s inst_sram_slave
+    cache_if.s icache_slave,
+    input sram_cancel_rd
 );
 
 
@@ -36,9 +37,9 @@ always_ff @(posedge axi4_master.ACLK)begin
         case(read_state)
             STATE_IDLE_R:begin
                 ram_rd_valid <= 0;
-                if(inst_sram_slave.sram_rd_en)begin
+                 if(icache_slave.rd_req)begin
                     read_state <= STATE_RADDR;
-                    axi4_master.ARADDR <= inst_sram_slave.sram_rd_addr;
+                    axi4_master.ARADDR <= icache_slave.rd_addr;
                 end
                 else
                     read_state <= STATE_IDLE_R;
@@ -56,12 +57,12 @@ always_ff @(posedge axi4_master.ACLK)begin
                 if(axi4_master.RVALID && axi4_master.RLAST)begin
                         ram_rd_valid <=1'b1;
                         read_state <= cancel_op ? STATE_IDLE_R : STATE_RREPAIR;
-                        inst_sram_slave.sram_rd_data <= axi4_master.RDATA;
+                        icache_slave.ret_data <= axi4_master.RDATA;
                     end
                 else if(axi4_master.RVALID)begin
                         ram_rd_valid <=1'b1;
                         read_state <= cancel_op ? STATE_RDATA : STATE_RREPAIR;
-                        inst_sram_slave.sram_rd_data <= axi4_master.RDATA;
+                        icache_slave.ret_data <= axi4_master.RDATA;
                     end
                 else
                     read_state <= STATE_RDATA;
@@ -69,7 +70,7 @@ always_ff @(posedge axi4_master.ACLK)begin
             end
             STATE_RREPAIR:begin
                 ram_rd_valid <= 0;
-                axi4_master.ARADDR <= inst_sram_slave.sram_rd_addr;
+                axi4_master.ARADDR <= icache_slave.rd_addr;
                 read_state <= STATE_RADDR; 
             end
             default: read_state <= STATE_IDLE_R;
@@ -83,7 +84,7 @@ always_ff@(posedge clk)begin
         cancel_lock <= 0;
     else if (!cancel_op && !cancel_lock)begin
         cancel_lock <= 1;
-        cancel_op_addr <= inst_sram_slave.sram_rd_addr;
+        cancel_op_addr <= icache_slave.rd_addr;
     end if (cancel_op && cancel_lock)begin
         cancel_lock <= 0;
     end
@@ -92,7 +93,7 @@ end
 always_ff@(posedge axi4_master.ACLK)begin
     if (!axi4_master.ARESETn)begin
         cancel_op <= 1;
-    end else if(inst_sram_slave.sram_cancel_rd)
+    end else if(sram_cancel_rd)
         cancel_op <= 0;
     else if (ram_rd_valid)
         cancel_op <= 1;
@@ -100,6 +101,7 @@ end
 assign axi4_master.ARVALID = read_state == STATE_RADDR;
 assign axi4_master.RREADY = read_state == STATE_RDATA;
 
-
-assign inst_sram_slave.sram_rd_valid = cancel_op & ram_rd_valid;
+assign icache_slave.ret_last=axi4_master.RLAST;
+assign icache_slave.ret_valid = cancel_op & ram_rd_valid;
+assign icache_slave.rd_rdy = axi4_master.ARREADY;
 endmodule:axi4_master_inst
