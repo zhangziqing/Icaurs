@@ -100,7 +100,7 @@ module core_top(
 
     axi4_master_inst i_axi_bridge(
         .axi4_master(i_axi_port),
-        .cache_if(icachePort)
+        .icache_slave(icachePort)
         //.sram_cancel_rd(sram_cancel_rd)
     );
 
