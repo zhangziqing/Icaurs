@@ -107,15 +107,16 @@ module Core(
     InstFetch ifu_0(
         .clk(clock),
         .rst(reset),
-        .flush(glo_flush[4]),
-        .flush_pc(flush_pc),
-        .branch(predict_branch),
-        .predict_pc(predict_pc),
-        .stall(if_stall),
-        .ready(if_ready),
         .pc(pc),
         .valid(if_valid),
         .ns_ready(id_ready),
+        .predict_pc(predict_pc),
+        .branch(predict_branch),
+        .flush(glo_flush[4]),
+        .flush_pc(flush_pc),
+        .stall(if_stall),
+        .ready(if_ready),
+        
         .if_info(if_info),
         //from csr
         .csr_crmd(crmd_out),
@@ -134,7 +135,7 @@ module Core(
         .icache_valid(icache_valid),
         .inst_uncache_en(inst_uncache_en),
         //read inst
-        .iram(iram),
+        // .iram(iram),
         .inst_valid(inst_valid),
         .inst(inst)
     );
@@ -143,6 +144,7 @@ module Core(
         .reset(reset),
         //to from cpu
         .valid(icache_valid),
+        .uncache_en(inst_uncache_en),
         .op(1'b0),
         .index(inst_index),
         .tag(inst_tag),

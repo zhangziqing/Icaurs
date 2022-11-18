@@ -1,17 +1,18 @@
 module cache (
-    input           clk,
-    input           reset,
+    input         clk,
+    input         reset,
     // CPU Interface
-    input           valid,
-    input           op,     //1: write, 0: read
-    input  [ 7:0]   index,
-    input  [19:0]   tag,
-    input  [ 3:0]   offset,
-    input  [ 3:0]   wstrb,
-    input  [31:0]   wdata,
-    output          addr_ok,
-    output          data_ok,
-    output [31:0]   rdata,
+    input         valid,
+    input         uncache_en,
+    input         op,     
+    input  [ 7:0] index,
+    input  [19:0] tag,
+    input  [ 3:0] offset,
+    input  [ 3:0] wstrb,
+    input  [31:0] wdata,
+    output        addr_ok,
+    output        data_ok,
+    output [31:0] rdata,
 
     // AXI Interface
     output         rd_req,
@@ -193,6 +194,7 @@ reg [19:0] rq_tag_r;
 reg [ 3:0] rq_offset_r;
 reg [ 3:0] rq_wstrb_r;
 reg [31:0] rq_wdata_r;
+reg        rq_uncache_en_r;
 
 /*-------------------- Write Buffer --------------------*/
 reg        wr_way_r;
@@ -224,7 +226,7 @@ wire [127:0] replace_data;
 wire [ 19:0] replace_tag;
 reg  [127:0] replace_data_r;
 reg  [ 19:0] replace_tag_r;
-wire replace_way;
+wire         replace_way;
 
 /*-------------------- Miss Buffer --------------------*/
 
@@ -262,7 +264,7 @@ assign way1_hit = way1_v && (way1_tag == rq_tag_r);
 assign wr_way0_hit = way0_v && (way0_tag == wr_tag_r);
 assign wr_way1_hit = way1_v && (way1_tag == wr_tag_r);
 assign hit_way = way1_hit;
-assign cache_hit = way0_hit || way1_hit;
+assign cache_hit = !rq_uncache_en_r && (way0_hit || way1_hit);
 
 /*-------------------- MAIN FSM --------------------*/
 
@@ -410,12 +412,13 @@ end
 /*-------------------- Request Buffer --------------------*/
 always @(posedge clk) begin
     if (reset) begin
-        rq_op_r     <= 1'b0;
-        rq_index_r  <= 8'b0;
-        rq_tag_r    <= 20'b0;
-        rq_offset_r <= 4'b0;
-        rq_wstrb_r  <= 4'b0;
-        rq_wdata_r  <= 32'b0;
+        rq_op_r         <= 1'b0;
+        rq_index_r      <= 8'b0;
+        rq_tag_r        <= 20'b0;
+        rq_offset_r     <= 4'b0;
+        rq_wstrb_r      <= 4'b0;
+        rq_wdata_r      <= 32'b0;
+        rq_uncache_en_r <= 1'b0;
     end
     else if (main_idle && main_next_state == MAIN_LOOKUP || 
         main_lookup && main_next_state == MAIN_LOOKUP) begin //only in these conditions, request can be accepted
@@ -426,6 +429,7 @@ always @(posedge clk) begin
         rq_wstrb_r       <= wstrb;
         rq_wdata_r       <= wdata;
         rq_replace_way_r <= pseudo_random_23[0];
+        rq_uncache_en_r  <= uncache_en;
     end
 end
 
@@ -485,13 +489,13 @@ assign addr_ok = main_idle   && main_next_state == MAIN_LOOKUP ||
                  main_lookup && main_next_state == MAIN_LOOKUP;
 assign data_ok = main_lookup && main_next_state == MAIN_IDLE   ||
                  main_lookup && main_next_state == MAIN_LOOKUP ||
-                 main_refill && ret_valid && num_ret_data == rq_offset_r[3:2];
+                 (main_refill && ret_valid && (num_ret_data == rq_offset_r[3:2]||rq_uncache_en_r));
 
 /*-------------------- AXI Interface --------------------*/
 
 assign rd_req = main_replace;
-assign rd_type = 3'b100;
-assign rd_addr = {rq_tag_r, rq_index_r, 4'b0000};
+assign rd_type = rq_uncache_en_r ? 3'b010 : 3'b100;
+assign rd_addr = rq_uncache_en_r ? {rq_tag_r, rq_index_r, rq_offset_r} : {rq_tag_r, rq_index_r, 4'b0000};
 
 reg wr_req_r;
 

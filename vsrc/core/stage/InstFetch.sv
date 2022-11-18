@@ -29,9 +29,7 @@ module InstFetch(
     input           icache_miss,
     output          icache_valid,
     output          inst_uncache_en,
-
     //read inst
-    sram_if.m iram,
     output reg inst_valid,
     output [`ADDR_WIDTH-1 : 0] inst
 
@@ -67,7 +65,7 @@ module InstFetch(
     assign if_info.branch_addr = predict_pc;
     assign if_info.except_type = except_type;
 
-    //MMU
+    //pre-IF
     assign inst_addr = r_pc;
     //1.csr signal
     wire csr_crmd_da = csr_crmd[3];
@@ -79,24 +77,15 @@ module InstFetch(
     assign dmw1_en = ((csr_dmw1[0] && csr_crmd_plv == 2'd0) || (csr_dmw1[3] && csr_crmd_plv == 2'd3)) && (csr_dmw1[31:29] == r_pc[31:29]);
 
     //icache
-    assign icache_valid = !inst_uncache_en && valid;
+    assign icache_valid = valid;
     //1.judge uncache
     assign da_mode = csr_crmd_da && !csr_crmd_pg;
-    assign inst_uncache_en = (da_mode && (csr_datf == 2'b0))                 ||
-                             (dmw0_en && (csr_dmw0[5:4] == 2'b0))            ||
-                             (dmw1_en && (csr_dmw1[5:4] == 2'b0))            ||
-                             disable_cache;
-
-    //read inst
-    //1.write inst signal invalid
-    assign iram.sram_wr_en   = 0;
-    assign iram.sram_wr_addr = 0;
-    assign iram.sram_wr_data = 0;
-    assign iram.sram_wr_mask = 0;
-    //2.read inst signal valid
-    assign iram.sram_rd_en   = inst_uncache_en & (valid & ready);
-    assign iram.sram_rd_addr = pc;
-    assign iram.sram_cancel_rd = 0;
+    //debug
+    assign inst_uncache_en = 1'b1;
+    // assign inst_uncache_en = (da_mode && (csr_datf == 2'b0))                 ||
+    //                          (dmw0_en && (csr_dmw0[5:4] == 2'b0))            ||
+    //                          (dmw1_en && (csr_dmw1[5:4] == 2'b0))            ||
+    //                          disable_cache;
     
     //judge inst valid
     always @(posedge clk)
@@ -109,12 +98,7 @@ module InstFetch(
             begin
                 inst_valid <= 1;
             end
-            else if(iram.sram_rd_valid)
-            begin
-                inst_valid <= 1;
-            end
     end
-    assign inst =   !inst_valid ? inst :
-                    inst_data_ok ? inst_rdata : iram.sram_rd_data;
+    assign inst =  inst_rdata;
 
 endmodule:InstFetch
