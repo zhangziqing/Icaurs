@@ -3,7 +3,7 @@ interface cache_if;
 
     //read
     logic                        rd_req;
-    logic [  2:0]                rd_typ;
+    logic [  2:0]                rd_type;
     logic [`ADDR_WIDTH - 1:0]    rd_addr;
     logic                        rd_rdy;
     logic                        ret_valid;
