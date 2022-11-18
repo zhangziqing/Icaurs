@@ -19,9 +19,10 @@ module MMU(
     wire da_mode =  csr_crmd_da && !csr_crmd_pg;
 
     wire [31:0] inst_paddr;
-    assign inst_paddr = (pg_mode && inst_dmw0_en) ? {csr_dmw0[27:25], inst_vaddr[28:0]} :
-                        (pg_mode && inst_dmw1_en) ? {csr_dmw1[27:25], inst_vaddr[28:0]} :
-                        inst_vaddr;
+    // assign inst_paddr = (pg_mode && inst_dmw0_en) ? {csr_dmw0[27:25], inst_vaddr[28:0]} :
+    //                     (pg_mode && inst_dmw1_en) ? {csr_dmw1[27:25], inst_vaddr[28:0]} :
+    //                     inst_vaddr;
+    assign inst_paddr   = inst_vaddr;
     assign inst_tag     = inst_paddr[31:12];
     assign inst_index   = inst_paddr[11:4];
     assign inst_offest  = inst_paddr[3:0];

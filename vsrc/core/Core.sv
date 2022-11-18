@@ -9,10 +9,10 @@
 module Core(
     input clock,
     input reset,
-    sram_if.m iram,
+    //sram_if.m iram,
     sram_if.m dram,
     cache_if.m icachePort,
-    output sram_cancel_rd,
+    //output sram_cancel_rd,
     input  [8 : 0] hw_int,
     output [31:0] debug0_wb_pc,
     output [ 3:0] debug0_wb_rf_wen,
@@ -135,7 +135,6 @@ module Core(
         .icache_valid(icache_valid),
         .inst_uncache_en(inst_uncache_en),
         //read inst
-        // .iram(iram),
         .inst_valid(inst_valid),
         .inst(inst)
     );
@@ -169,7 +168,7 @@ module Core(
         .wr_data  (icachePort.wr_data),
         .wr_rdy   (icachePort.wr_rdy)
     );
-    assign sram_cancel_rd = 0;
+    //assign sram_cancel_rd = 0;
     MMU mmu(
         .clk(clock),
         //inst addr trans from IF

@@ -53,14 +53,14 @@ module core_top(
     output [31:0] debug0_wb_rf_wdata
 );
 
-    sram_if iram,dram;
+    sram_if dram;
     cache_if icachePort;
-    wire sram_cancel_rd;
+    //wire sram_cancel_rd;
     Core core_inst(
-        .iram(iram),
+        //.iram(iram),
         .dram(dram),
-	.icachePort(icachePort),
-        .sram_cancel_rd(sram_cancel_rd),
+	    .icachePort(icachePort),
+        //.sram_cancel_rd(sram_cancel_rd),
         .clock(aclk),
         .reset(!aresetn),
         .hw_int(0),
@@ -100,8 +100,8 @@ module core_top(
 
     axi4_master_inst i_axi_bridge(
         .axi4_master(i_axi_port),
-        .cache_if(icachePort),
-        .sram_cancel_rd(sram_cancel_rd)
+        .cache_if(icachePort)
+        //.sram_cancel_rd(sram_cancel_rd)
     );
 
     AXI_Interconnect #(
