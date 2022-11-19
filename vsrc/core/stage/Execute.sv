@@ -105,10 +105,11 @@ module MDU(
  //   wire  [63: 0 ] smul = $signed(oprand1) * $signed(oprand2);
  //   assign mulres = op[4] ? umul : smul; 
 
-    mul mult(
-        .mul_signed(sig),
+    multi mult(
+        
         .x(oprand1),
         .y(oprand2),
+        .sig(sig),
         .result(mulres)
    );
    div di(

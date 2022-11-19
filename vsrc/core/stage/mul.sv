@@ -136,8 +136,8 @@ endmodule
 
 //乘法器的实现
 module multi(
-    input clk,
-    input rst,
+    //input clk,
+    //input rst,
     input [31:0]x,y,
     input sig,
     output [63:0] result
@@ -171,13 +171,13 @@ endgenerate
 reg [16:0] Cout;
 reg [63:0] Part_res [16:0];
 integer j;
-always @(posedge clk) begin
-    if(~rst) begin
+always @(*) begin
+    //if(~rst) begin
         Cout <= cout;
         for(j=0;j<17;j++) begin
             Part_res[j] <= part_res[j];
         end
-    end
+    //end
 end
 
 wire [13:0] walloc_group [64:0];
