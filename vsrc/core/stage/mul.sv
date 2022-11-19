@@ -1,201 +1,210 @@
-module YDecoder(
-    input yc, yb, ya, //c -> i+1; b -> i; a -> i-1
-    output negx, x, neg2x, _2x
-    );
 
-assign negx = (yc & yb & ~ya) | (yc & ~yb & ya);
-assign x = (~yc & ~yb & ya) | (~yc & yb & ~ya);
-assign neg2x = (yc & ~yb & ~ya);
-assign _2x = (~yc & yb & ya);
+//booth选择信号生成器
+module Sel_signal(
+    input [2:0]src,
+    output neg,pos,neg2,pos2
+);
+///y+1,y,y-1///
+assign {y_up,y,y_down} = src;
 
-endmodule
-
-
-module BoothBase(
-    input negx, x, neg2x, _2x,
-    input InX,
-    input PosLastX, NegLastX,
-    output PosNextX, NegNextX,
-    output OutX
-    );
-
-assign OutX = (negx & ~InX) | (x & InX) | (neg2x & NegLastX) | (_2x & PosLastX);
-assign PosNextX = InX;
-assign NegNextX = ~InX;
+assign neg =  y_up & (y & ~y_down | ~y & y_down);
+assign pos = ~y_up & (y & ~y_down | ~y & y_down);
+assign neg2 =  y_up & ~y & ~y_down;
+assign pos2 = ~y_up &  y &  y_down;
 
 endmodule
 
+//booth结果选择器
+module Sel_res(
+    input neg,pos,neg2,pos2,
+//    input x,
+    input x_down,
+    input x_now,
+    output p
+);
+assign p = ~(~(neg & ~x_now) & ~(neg2 & ~x_down) 
+           & ~(pos & x_now ) & ~(pos2 &  x_down));
+//assign x_now = x;
 
-module BoothInterBase(
-    input [2:0] y,
-    input [63:0] InX,
-    output [63:0] OutX,
-    output Carry
+endmodule
+
+//booth部分积生成模块
+module Part_pro(
+    input [2:0] src,
+    input [63:0] x,
+    output [63:0] p,
+    output cout
 );
 
-wire negx, x, neg2x, _2x;
-wire [1:0] CarrySig [64:0];
+wire neg,pos,neg2,pos2;
+//wire x_down,x_now;
 
-YDecoder uu(.yc(y[2]), .yb(y[1]), .ya(y[0]), .negx(negx), .x(x), .neg2x(neg2x), ._2x(_2x));
+Sel_signal ss(.src(src),
+              .neg(neg),
+              .pos(pos),
+              .neg2(neg2),
+              .pos2(pos2));
 
-BoothBase fir(.negx(negx), .x(x), .neg2x(neg2x), ._2x(_2x), .InX(InX[0]),
- .PosLastX(1'b0), .NegLastX(1'b1), .PosNextX(CarrySig[1][0]), .NegNextX(CarrySig[1][1]),
-  .OutX(OutX[0]));
+Sel_res sr(.neg(neg),
+            .pos(pos),
+            .neg2(neg2),
+            .pos2(pos2),
+//            .x(x),
+            .x_down(1'b0),
+            .x_now(x[0]),
+            .p(p[0]));
 
 generate
     genvar i;
-    for (i=1; i<64; i=i+1) begin: gfor
-        BoothBase ui(
-            .negx(negx),
-            .x(x),
-            .neg2x(neg2x),
-            ._2x(_2x),
-            .InX(InX[i]),
-            .PosLastX(CarrySig[i][0]),
-            .NegLastX(CarrySig[i][1]),
-            .PosNextX(CarrySig[i+1][0]),
-            .NegNextX(CarrySig[i+1][1]),
-            .OutX(OutX[i])
-        );
-
+    for(i=1;i<64;i=i+1)begin
+//       assign x_down = x_now;
+        Sel_res ssr(.neg(neg),
+            .pos(pos),
+            .neg2(neg2),
+            .pos2(pos2),
+//            .x(x),
+            .x_down(x[i-1]),
+            .x_now(x[i]),
+            .p(p[i]));
     end
 endgenerate
 
-assign Carry = negx || neg2x;
+assign cout = neg || neg2;
 
 endmodule
 
-
+//一位全加器
 module addr(
-    input A, B, C,
-    output Carry, S
-    );
+  input [2:0] in,
+  output cout,s
 
-assign S = ~A & ~B & C | ~A & B & ~C | A & ~B & ~C | A & B & C;
-assign Carry = A & B | A & C | B & C;
+);
+wire a,b,cin;
+assign a=in[2];
+assign b=in[1];
+assign cin=in[0];
+assign s = a ^ b ^ cin;
+assign cout = a & b | cin & ( a ^ b );
+endmodule
+
+//17位华莱士树
+module walloc17(
+    input [16:0] src_in,
+    input [13:0]  cin,
+    output [13:0] cout_group,
+    output      cout,s
+);
+wire [13:0] c;
+///////////////first////////////////
+wire [4:0] first_s;
+addr addr0 (.in (src_in[16:14]), .cout (c[4]), .s (first_s[4]) );
+addr addr1 (.in (src_in[13:11]), .cout (c[3]), .s (first_s[3]) );
+addr addr2 (.in (src_in[10:08]), .cout (c[2]), .s (first_s[2]) );
+addr addr3 (.in (src_in[07:05]), .cout (c[1]), .s (first_s[1]) );
+addr addr4 (.in (src_in[04:02]), .cout (c[0]), .s (first_s[0]) );
+
+///////////////secnod//////////////
+wire [3:0] secnod_s;
+addr addr5 (.in ({first_s[4:2]}             ), .cout (c[8]), .s (secnod_s[3]));
+addr addr6 (.in ({first_s[1:0],src_in[1]}   ), .cout (c[7]), .s (secnod_s[2]));
+addr addr7 (.in ({src_in[0],cin[4:3]}       ), .cout (c[6]), .s (secnod_s[1]));
+addr addr8 (.in ({cin[2:0]}                 ), .cout (c[5]), .s (secnod_s[0]));
+
+//////////////thrid////////////////
+wire [1:0] thrid_s;
+addr addr9 (.in (secnod_s[3:1]          ), .cout (c[10]), .s (thrid_s[1]));
+addr addrA (.in ({secnod_s[0],cin[6:5]} ), .cout (c[09]), .s (thrid_s[0]));
+
+//////////////fourth////////////////
+wire [1:0] fourth_s;
+
+addr addrB (.in ({thrid_s[1:0],cin[10]} ),  .cout (c[12]), .s (fourth_s[1]));
+addr addrC (.in ({cin[9:7]             }),  .cout (c[11]), .s (fourth_s[0]));
+
+//////////////fifth/////////////////
+wire fifth_s;
+
+addr addrD (.in ({fourth_s[1:0],cin[11]}),  .cout (c[13]), .s (fifth_s));
+
+///////////////sixth///////////////
+addr addrE (.in ({fifth_s,cin[13:12]}   ),  .cout (cout),  .s  (s));
+
+///////////////output///////////////
+assign cout_group = c;
 
 endmodule
 
-
-module WallaceTreeBase(
-    input [16:0] InData,
-    input [13:0] CIn,
-    output [13:0] COut,
-    output C, S
-    );
-
-//first stage
-wire [4:0] FirSig;
-addr first1(.A(InData[4]), .B(InData[3]), .C(InData[2]), .Carry(COut[0]), .S(FirSig[0]));
-addr first2(.A(InData[7]), .B(InData[6]), .C(InData[5]), .Carry(COut[1]), .S(FirSig[1]));
-addr first3(.A(InData[10]), .B(InData[9]), .C(InData[8]), .Carry(COut[2]), .S(FirSig[2]));
-addr first4(.A(InData[13]), .B(InData[12]), .C(InData[11]), .Carry(COut[3]), .S(FirSig[3]));
-addr first5(.A(InData[16]), .B(InData[15]), .C(InData[14]), .Carry(COut[4]), .S(FirSig[4]));
-
-//second stage
-wire [3:0] SecSig;
-addr second1(.A(CIn[2]), .B(CIn[1]), .C(CIn[0]), .Carry(COut[5]), .S(SecSig[0]));
-addr second2(.A(InData[0]), .B(CIn[4]), .C(CIn[3]), .Carry(COut[6]), .S(SecSig[1]));
-addr second3(.A(FirSig[1]), .B(FirSig[0]), .C(InData[1]), .Carry(COut[7]), .S(SecSig[2]));
-addr second4(.A(FirSig[4]), .B(FirSig[3]), .C(FirSig[2]), .Carry(COut[8]), .S(SecSig[3]));
-
-//third stage
-wire [1:0] ThiSig;
-addr third1(.A(SecSig[0]), .B(CIn[6]), .C(CIn[5]), .Carry(COut[9]), .S(ThiSig[0]));
-addr third2(.A(SecSig[3]), .B(SecSig[2]), .C(SecSig[1]), .Carry(COut[10]), .S(ThiSig[1]));
-
-//fourth stage
-wire [1:0] ForSig;
-addr fourth1(.A(CIn[9]), .B(CIn[8]), .C(CIn[7]), .Carry(COut[11]), .S(ForSig[0]));
-addr fourth2(.A(ThiSig[1]), .B(ThiSig[0]), .C(CIn[10]), .Carry(COut[12]), .S(ForSig[1]));
-
-//fifth stage
-wire FifSig;
-addr fifth1(.A(ForSig[1]), .B(ForSig[0]), .C(CIn[11]), .Carry(COut[13]), .S(FifSig));
-
-//sixth stage
-addr sixth1(.A(FifSig), .B(CIn[13]), .C(CIn[12]), .Carry(C), .S(S));
-
-endmodule
-
-//-------------------------------------------------------------------------------------------------------------------
-
-module mul(
-   // input mul_clk, reset,
-    input mul_signed,
-    input [31:0] x, y, //x扩展至64位 y扩展至33位 区别有无符号
+//乘法器的实现
+module multi(
+    input clk,
+    input rst,
+    input [31:0]x,y,
+    input sig,
     output [63:0] result
-    );
+);
+wire [63:0] ex_x;
+wire [33:0] ex_y;
 
-wire [63:0] CalX;
-wire [32:0] CalY;
-
-assign CalX = mul_signed ? {{32{x[31]}}, x} : {32'b0, x};
-assign CalY = mul_signed ? {y[31], y} : {1'b0, y};
+assign ex_x = sig ? {{32{x[31]}},x} : {32'b0,x};
+assign ex_y = sig ? {{2{y[31]}},y} : {2'b0,y};
 
 //booth
-wire [16:0] Carry; //booth计算得到的进位
-wire [63:0] BoothRes [16:0]; //booth的计算结果
-BoothInterBase fir(.y({CalY[1], CalY[0], 1'b0}), .InX(CalX), .OutX(BoothRes[0]), .Carry(Carry[0]));
+//进位
+wire [16:0] cout;
+//部分积结果
+wire [63:0] part_res [16:0];
+
+Part_pro pp(.src({ex_y[1],ex_y[0],1'b0}),.x(ex_x),.p(part_res[0]),.cout(cout[0]));
 
 generate
     genvar i;
-    for (i=2; i<32; i=i+2) begin: boothfor
-        BoothInterBase ai(
-            .y(CalY[i+1:i-1]),
-            .InX(CalX<<i),
-            .OutX(BoothRes[i>>1]),
-            .Carry(Carry[i>>1])
+    for(i=2;i<=32;i=i+2) begin
+        Part_pro pap(
+            .src(ex_y[i+1:i-1]),
+            .x(ex_x<<i),
+            .p(part_res[i>>1]),
+            .cout(cout[i>>1])
         );
     end
 endgenerate
 
-BoothInterBase las(.y({CalY[32], CalY[32], CalY[31]}), .InX(CalX<<32), .OutX(BoothRes[16]), .Carry(Carry[16]));
-
-reg [16:0] SecStageCarry;
-reg [63:0] SecStageBoothRes [16:0];
-integer p;
- 
-always @(*) begin
-   // if (~reset) begin
-        SecStageCarry <= Carry;
-        for(p=0; p<17; p=p+1) begin
-            SecStageBoothRes[p] <= BoothRes[p];
-        end 
-  //  end
+reg [16:0] Cout;
+reg [63:0] Part_res [16:0];
+integer j;
+always @(posedge clk) begin
+    if(~rst) begin
+        Cout <= cout;
+        for(j=0;j<17;j++) begin
+            Part_res[j] <= part_res[j];
+        end
+    end
 end
 
-//wallace
-wire [13:0] WallaceInter [64:0] /*verilator split_var*/;
-wire [63:0] COut, SOut;
+wire [13:0] walloc_group [64:0];
+wire [63:0] c_res,s_res;
 
-WallaceTreeBase firs(
-            .InData({SecStageBoothRes[0][0],
-             SecStageBoothRes[1][0], SecStageBoothRes[2][0], SecStageBoothRes[3][0], SecStageBoothRes[4][0], SecStageBoothRes[5][0], SecStageBoothRes[6][0],
-            SecStageBoothRes[7][0], SecStageBoothRes[8][0], SecStageBoothRes[9][0], SecStageBoothRes[10][0], SecStageBoothRes[11][0], SecStageBoothRes[12][0], SecStageBoothRes[13][0], SecStageBoothRes[14][0],
-            SecStageBoothRes[15][0], SecStageBoothRes[16][0]}),
-            .CIn(SecStageCarry[13:0]),
-            .COut(WallaceInter[1]),
-            .C(COut[0]),
-            .S(SOut[0])
-        );
-
+walloc17 w(
+    .src_in({Part_res[0][0],Part_res[1][0],Part_res[2][0],Part_res[3][0],Part_res[4][0],Part_res[5][0],Part_res[6][0],Part_res[7][0],
+    Part_res[8][0],Part_res[9][0],Part_res[10][0],Part_res[11][0],Part_res[12][0],Part_res[13][0],Part_res[14][0],Part_res[15][0],Part_res[16][0]}),
+    .cin(Cout[13:0]),
+    .cout_group(walloc_group[1]),
+    .cout(c_res[0]),
+    .s(s_res[0])
+);
 generate
-    genvar n;
-    for (n=1; n<64; n=n+1) begin: wallacefor
-        WallaceTreeBase bi(
-            .InData({SecStageBoothRes[0][n], SecStageBoothRes[1][n], SecStageBoothRes[2][n], SecStageBoothRes[3][n], SecStageBoothRes[4][n], SecStageBoothRes[5][n], SecStageBoothRes[6][n],
-            SecStageBoothRes[7][n], SecStageBoothRes[8][n], SecStageBoothRes[9][n], SecStageBoothRes[10][n], SecStageBoothRes[11][n], SecStageBoothRes[12][n], SecStageBoothRes[13][n], SecStageBoothRes[14][n],
-            SecStageBoothRes[15][n], SecStageBoothRes[16][n]}),
-            .CIn(WallaceInter[n]),
-            .COut(WallaceInter[n+1]),
-            .C(COut[n]),
-            .S(SOut[n])
+    genvar k;
+    for(k=1;k<64;k++)begin
+        walloc17 ww(
+            .src_in({Part_res[0][k],Part_res[1][k],Part_res[2][k],Part_res[3][k],Part_res[4][k],Part_res[5][k],Part_res[6][k],Part_res[7][k],
+    Part_res[8][k],Part_res[9][k],Part_res[10][k],Part_res[11][k],Part_res[12][k],Part_res[13][k],Part_res[14][k],Part_res[15][k],Part_res[16][k]}),
+            .cin(walloc_group[k]),
+            .cout_group(walloc_group[k+1]),
+            .cout(c_res[k]),
+            .s(s_res[k])
         );
     end
 endgenerate
 
-//64bit add
-assign result = SOut + {COut[62:0], SecStageCarry[14]} + SecStageCarry[15];
+assign result = s_res + {c_res[62:0],Cout[14]} + Cout[15];
 
 endmodule
