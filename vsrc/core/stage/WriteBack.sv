@@ -10,7 +10,7 @@ module WriteBack (
     output   [`CSRNUM_WIDTH - 1 : 0 ]    csr_waddr,
     output   [`DATA_WIDTH - 1   : 0 ]    csr_wdata,
     output   [`ADDR_WIDTH - 1   : 0 ]    epc,
-    output   [`DATA_WIDTH - 1   : 0 ]    etype,
+    output   [             15   : 0 ]    etype,
 
 
     lsu_info_if.i       lsu_info,
@@ -33,7 +33,6 @@ module WriteBack (
     output [4:0]    tlbsrch_index
 );
     //to csr
-    // wire etype;
     assign etype        = mem_info.except_type;
     assign is_except    = (etype!=16'b0);
     assign is_ertn      = mem_info.is_ertn;

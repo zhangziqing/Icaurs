@@ -1,4 +1,6 @@
 `include "width_param.sv"
+`include "sram_if.sv"
+`include "cache_if.sv"
 // import "DPI-C" function void dpi_pmem_read(output int data, input int addr, input bit en);
 // import "DPI-C" function void dpi_pmem_write(input int data, input int addr, input bit en, input bit[3:0] wr_mask);
 // import "DPI-C" function void dpi_pmem_fetch(output int data, input int addr, input bit en);
@@ -17,7 +19,7 @@ module Core(
     output [31:0] debug0_wb_pc,
     output [ 3:0] debug0_wb_rf_wen,
     output [ 4:0] debug0_wb_rf_wnum,
-    output [31:0] debug0_wb_rf_wdata,
+    output [31:0] debug0_wb_rf_wdata
 );
     logic [`ADDR_WIDTH - 1 : 0] pc;//if_pc
     logic [`ADDR_WIDTH - 1 : 0] flush_pc;
@@ -410,7 +412,7 @@ module Core(
         .lsu_info(lsu_info_mem),
         .lsu_info_out(lsu_info_wb)
     );
-
+    logic [15:0] etype;
     WriteBack wb_0(
         .mem_info(wb_info),
         .ram_rd_data(dram.sram_rd_data),
@@ -427,6 +429,7 @@ module Core(
         .debug0_wb_pc(debug0_wb_pc),
         .is_except(is_except),
         .is_ertn(is_ertn),
+        .etype(etype),
         .epc(epc),
         .Ecode(Ecode),
         .EsubCode(EsubCode),
@@ -503,7 +506,8 @@ module Core(
         .pgdl_out(pgdl_out),
         .pgdh_out(pgdh_out),
         .pgd_out(pgd_out),
-        .tlbrentry_out(tlbrentry_out)
+        .tlbrentry_out(tlbrentry_out),
+        .crmd_out(crmd_out)
     );
     PipelineController pipctl_0(
         .predict_miss(predict_miss),
