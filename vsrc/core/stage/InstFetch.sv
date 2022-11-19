@@ -77,7 +77,7 @@ module InstFetch(
     assign dmw1_en = ((csr_dmw1[0] && csr_crmd_plv == 2'd0) || (csr_dmw1[3] && csr_crmd_plv == 2'd3)) && (csr_dmw1[31:29] == r_pc[31:29]);
 
     //icache
-    assign icache_valid = valid;
+    assign icache_valid = valid & ready;
     //1.judge uncache
     assign da_mode = csr_crmd_da && !csr_crmd_pg;
     //debug
