@@ -16,10 +16,11 @@ reg ram_rd_valid;
 reg cancel_op;
 reg [31 : 0] cancel_op_addr;
 reg cancel_lock;
-
+logic inst_rd_cache_line;
+assign inst_rd_cache_line = icache_slave.rd_type==3'b100;   
 /// read channels
 assign axi4_master.ARREGION = 4'b0000;
-assign axi4_master.ARLEN = 8'b11;
+assign axi4_master.ARLEN = inst_rd_cache_line ? 8'b11:8'b0;
 assign axi4_master.ARSIZE = 3'b010;
 assign axi4_master.ARBURST = 2'b01;
 assign axi4_master.ARLOCK  = 0;
